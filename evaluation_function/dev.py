@@ -16,7 +16,8 @@ def dev():
     answer = sys.argv[1]
     response = sys.argv[2]
 
-    result = evaluation_function(answer, response, Params())
+    # evaluation_function signature is (response, answer, params)
+    result = evaluation_function(response, answer, Params())
 
     print(result.to_dict())
 

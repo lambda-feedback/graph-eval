@@ -21,6 +21,9 @@ class PathResult(BaseModel):
     path_exists: bool = Field(True, description="Whether a path exists")
     algorithm_used: Optional[str] = Field(None, description="Algorithm used")
     all_paths: Optional[list[list[str]]] = Field(None, description="All shortest paths if multiple exist")
+    supplied_path_is_valid: Optional[bool] = Field(None, description="Whether a supplied path is valid")
+    supplied_path_weight: Optional[float] = Field(None, description="Total weight of a supplied path")
+    supplied_path_is_shortest: Optional[bool] = Field(None, description="Whether a supplied path is a shortest path")
 
 
 class ConnectivityResult(BaseModel):
@@ -207,9 +210,6 @@ class EvaluationDetails(BaseModel):
     computation_steps: list[ComputationStep] = Field(default_factory=list, description="Step-by-step computation")
     hints: list[str] = Field(default_factory=list, description="Hints for incorrect answers")
     
-    # Scoring
-    partial_score: Optional[float] = Field(None, ge=0.0, le=1.0, description="Partial credit score")
-    scoring_breakdown: Optional[dict[str, float]] = Field(None, description="Breakdown of partial scoring")
 
 
 # =============================================================================

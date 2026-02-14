@@ -151,6 +151,14 @@ class CycleDetectionParams(BaseModel):
         False,
         description="Whether to find all cycles or just detect presence"
     )
+    max_nodes: int = Field(
+        15,
+        description="Maximum number of nodes allowed when enumerating all cycles (safety guard)"
+    )
+    max_cycles: int = Field(
+        1000,
+        description="Maximum number of cycles to return when enumerating all cycles (safety guard)"
+    )
     max_length: Optional[int] = Field(
         None,
         description="Maximum cycle length to consider"
