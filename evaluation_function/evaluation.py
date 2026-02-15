@@ -230,7 +230,6 @@ def evaluation_function(
 
         # If student supplied an explicit coloring, validate it
         if student_coloring is not None:
-            coloring_result = is_n_colorable(student_graph, num_colors)
             # Verify the student's coloring is a proper coloring
             adj: dict[str, set[str]] = {n.id: set() for n in student_graph.nodes}
             for e in student_graph.edges:
