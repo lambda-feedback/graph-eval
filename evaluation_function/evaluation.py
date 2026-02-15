@@ -215,7 +215,7 @@ def evaluation_function(
             return _err("No graph provided in either response.graph or answer.graph.")
 
         gc_params = p.graph_coloring
-        num_colors = (gc_params.num_colors if gc_params and gc_params.num_colors else None) or ans.num_colors
+        num_colors = gc_params.num_colors if (gc_params and gc_params.num_colors is not None) else ans.num_colors
         if num_colors is None:
             return _err("Missing num_colors: provide in params.graph_coloring.num_colors or answer.num_colors.")
 
@@ -230,7 +230,6 @@ def evaluation_function(
 
         # If student supplied an explicit coloring, validate it
         if student_coloring is not None:
-            coloring_result = is_n_colorable(student_graph, num_colors)
             # Verify the student's coloring is a proper coloring
             adj: dict[str, set[str]] = {n.id: set() for n in student_graph.nodes}
             for e in student_graph.edges:
