@@ -215,7 +215,7 @@ def evaluation_function(
             return _err("No graph provided in either response.graph or answer.graph.")
 
         gc_params = p.graph_coloring
-        num_colors = (gc_params.num_colors if gc_params and gc_params.num_colors else None) or ans.num_colors
+        num_colors = gc_params.num_colors if (gc_params and gc_params.num_colors is not None) else ans.num_colors
         if num_colors is None:
             return _err("Missing num_colors: provide in params.graph_coloring.num_colors or answer.num_colors.")
 
