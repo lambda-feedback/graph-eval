@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Iterable, Optional
 
 from evaluation_function.schemas import Edge, Graph
 
@@ -36,28 +35,10 @@ def build_reverse_adjacency(graph: Graph) -> dict[str, list[AdjEdge]]:
     return adj
 
 
-def edge_weight_lookup(graph: Graph, *, undirected: bool) -> dict[tuple[str, str], float]:
-    """Lookup of min weight for (u,v). Useful for validating user-provided paths."""
-    lookup: dict[tuple[str, str], float] = {}
+def build_adjacency_list(graph: Graph) -> dict[str, set[str]]:
+    """Simple adjacency list (node_id -> set of neighbor ids). Undirected."""
+    adj: dict[str, set[str]] = {n.id: set() for n in graph.nodes}
     for e in graph.edges:
-        w = float(e.weight if e.weight is not None else 1.0)
-        key = (e.source, e.target)
-        lookup[key] = min(lookup.get(key, w), w)
-        if undirected:
-            key2 = (e.target, e.source)
-            lookup[key2] = min(lookup.get(key2, w), w)
-    return lookup
-
-
-def path_weight(path: Iterable[str], w_lookup: dict[tuple[str, str], float]) -> Optional[float]:
-    path_list = list(path)
-    if len(path_list) <= 1:
-        return 0.0
-    total = 0.0
-    for u, v in zip(path_list, path_list[1:]):
-        w = w_lookup.get((u, v))
-        if w is None:
-            return None
-        total += w
-    return total
-
+        adj.setdefault(e.source, set()).add(e.target)
+        adj.setdefault(e.target, set()).add(e.source)
+    return adj

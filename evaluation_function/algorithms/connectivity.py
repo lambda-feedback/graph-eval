@@ -69,24 +69,21 @@ def connectivity_info(
 ) -> ConnectivityResult:
     ids = node_ids(graph)
     if len(ids) <= 1:
-        comps = [ids]
+        comps = [ids] if ids else []
         return ConnectivityResult(
             is_connected=True,
             num_components=len(comps),
             components=comps if return_components else None,
             connectivity_type=connectivity_type,
-            largest_component_size=len(ids),
         )
 
     if connectivity_type == "strongly_connected":
         is_conn = _is_strongly_connected(graph)
-        # Components for SCCs are out-of-scope for this ticket.
         return ConnectivityResult(
             is_connected=is_conn,
             num_components=1 if is_conn else 2,
             components=None,
             connectivity_type=connectivity_type,
-            largest_component_size=len(ids) if is_conn else None,
         )
 
     if connectivity_type == "weakly_connected":
@@ -96,7 +93,6 @@ def connectivity_info(
             num_components=len(comps),
             components=comps if return_components else None,
             connectivity_type=connectivity_type,
-            largest_component_size=max((len(c) for c in comps), default=0),
         )
 
     # Default: undirected connectivity.
@@ -106,6 +102,4 @@ def connectivity_info(
         num_components=len(comps),
         components=comps if return_components else None,
         connectivity_type="connected",
-        largest_component_size=max((len(c) for c in comps), default=0),
     )
-

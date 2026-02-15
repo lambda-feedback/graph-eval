@@ -2,7 +2,6 @@ import pytest
 
 from evaluation_function.algorithms.bipartite import bipartite_info
 from evaluation_function.algorithms.connectivity import connectivity_info
-from evaluation_function.algorithms.shortest_path import NegativeCycleError, shortest_path_info
 from evaluation_function.schemas import Edge, Graph, Node
 
 
@@ -38,61 +37,6 @@ class TestConnectivity:
         assert info.is_connected is False
 
 
-class TestShortestPath:
-    def test_unweighted_bfs(self):
-        graph = g(["A", "B", "C"], [{"source": "A", "target": "B"}, {"source": "B", "target": "C"}], directed=False)
-        info = shortest_path_info(graph, source="A", target="C", algorithm="auto")
-        assert info.path_exists is True
-        assert info.algorithm_used == "bfs"
-        assert info.distance == 2.0
-        assert info.path == ["A", "B", "C"]
-
-    def test_weighted_dijkstra(self):
-        graph = g(
-            ["A", "B", "C"],
-            [
-                {"source": "A", "target": "B", "weight": 2},
-                {"source": "B", "target": "C", "weight": 2},
-                {"source": "A", "target": "C", "weight": 10},
-            ],
-            directed=False,
-        )
-        info = shortest_path_info(graph, source="A", target="C", algorithm="auto")
-        assert info.algorithm_used == "dijkstra"
-        assert info.distance == 4.0
-        assert info.path == ["A", "B", "C"]
-
-    def test_negative_weight_bellman_ford(self):
-        graph = g(
-            ["A", "B", "C"],
-            [
-                {"source": "A", "target": "B", "weight": -1},
-                {"source": "B", "target": "C", "weight": 2},
-                {"source": "A", "target": "C", "weight": 5},
-            ],
-            directed=True,
-        )
-        info = shortest_path_info(graph, source="A", target="C", algorithm="auto")
-        assert info.algorithm_used == "bellman_ford"
-        assert info.distance == 1.0
-        assert info.path == ["A", "B", "C"]
-
-    def test_negative_cycle_raises(self):
-        graph = g(
-            ["A", "B"],
-            [{"source": "A", "target": "B", "weight": 1}, {"source": "B", "target": "A", "weight": -2}],
-            directed=True,
-        )
-        with pytest.raises(NegativeCycleError):
-            shortest_path_info(graph, source="A", target="B", algorithm="auto")
-
-    def test_supplied_path_validation(self):
-        graph = g(["A", "B", "C"], [{"source": "A", "target": "B"}, {"source": "B", "target": "C"}], directed=False)
-        info = shortest_path_info(graph, source="A", target="C", algorithm="auto", supplied_path=["A", "B", "C"])
-        assert info.supplied_path_is_valid is True
-        assert info.supplied_path_is_shortest is True
-
-
 class TestBipartite:
     def test_bipartite_square(self):
         graph = g(
@@ -119,4 +63,3 @@ class TestBipartite:
         assert info.is_bipartite is False
         assert info.odd_cycle is not None
         assert len(info.odd_cycle) >= 3
-

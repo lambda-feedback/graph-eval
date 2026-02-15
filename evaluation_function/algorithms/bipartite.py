@@ -7,8 +7,7 @@ from evaluation_function.schemas import BipartiteResult, Graph
 from .utils import build_adjacency, node_ids
 
 
-def _reconstruct_odd_cycle(u: str, v: str, parent: dict[str, str], depth: dict[str, int]) -> list[str]:
-    # Build paths to root
+def _reconstruct_odd_cycle(u: str, v: str, parent: dict[str, str]) -> list[str]:
     pu = [u]
     pv = [v]
     cu, cv = u, v
@@ -29,13 +28,12 @@ def _reconstruct_odd_cycle(u: str, v: str, parent: dict[str, str], depth: dict[s
             break
 
     if lca is None or j is None:
-        # Fallback: just return the triangle-ish evidence
         return [u, v, u]
 
     i = set_pu[lca]
-    path_u_to_lca = pu[: i + 1]  # u..lca
-    path_v_to_lca = pv[: j + 1]  # v..lca
-    path_v_to_lca.reverse()  # lca..v
+    path_u_to_lca = pu[: i + 1]
+    path_v_to_lca = pv[: j + 1]
+    path_v_to_lca.reverse()
 
     cycle = path_u_to_lca + path_v_to_lca[1:] + [u]
     return cycle
@@ -47,19 +45,16 @@ def bipartite_info(
     return_partitions: bool = False,
     return_odd_cycle: bool = False,
 ) -> BipartiteResult:
-    # Bipartite is typically defined for undirected graphs; we treat directed as undirected for checking.
     adj = build_adjacency(graph, undirected=True)
 
     color: dict[str, int] = {}
     parent: dict[str, str] = {}
-    depth: dict[str, int] = {}
 
     for start in node_ids(graph):
         if start in color:
             continue
         q = deque([start])
         color[start] = 0
-        depth[start] = 0
 
         while q:
             u = q.popleft()
@@ -68,10 +63,9 @@ def bipartite_info(
                 if v not in color:
                     color[v] = 1 - color[u]
                     parent[v] = u
-                    depth[v] = depth[u] + 1
                     q.append(v)
                 elif color[v] == color[u]:
-                    cycle = _reconstruct_odd_cycle(u, v, parent, depth) if return_odd_cycle else None
+                    cycle = _reconstruct_odd_cycle(u, v, parent) if return_odd_cycle else None
                     return BipartiteResult(is_bipartite=False, partitions=None, odd_cycle=cycle)
 
     partitions = None
@@ -81,4 +75,3 @@ def bipartite_info(
         partitions = [left, right]
 
     return BipartiteResult(is_bipartite=True, partitions=partitions, odd_cycle=None)
-
