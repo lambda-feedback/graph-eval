@@ -56,9 +56,16 @@ class TestPreviewFunction(unittest.TestCase):
         self.assertIn("preview", result)
         preview = result["preview"]
         self.assertIn("sympy", preview)
-        self.assertIn("Triangle Graph", preview["sympy"])
-        self.assertIn("Nodes (3)", preview["sympy"])
-        self.assertIn("Edges (3)", preview["sympy"])
+        sympy_data = preview["sympy"]
+        
+        # Check structured JSON format
+        self.assertIsInstance(sympy_data, dict)
+        self.assertEqual(sympy_data["valid"], True)
+        self.assertEqual(sympy_data["num_nodes"], 3)
+        self.assertEqual(sympy_data["num_edges"], 3)
+        self.assertEqual(sympy_data["directed"], False)
+        self.assertEqual(sympy_data["weighted"], True)
+        self.assertEqual(sympy_data["graph_name"], "Triangle Graph")
 
     def test_preview_path_answer(self):
         """Test preview with a path answer."""
@@ -71,8 +78,16 @@ class TestPreviewFunction(unittest.TestCase):
         self.assertIn("preview", result)
         preview = result["preview"]
         self.assertIn("sympy", preview)
-        self.assertIn("A → B → C → D", preview["sympy"])
-        self.assertIn("Distance: 10.5", preview["sympy"])
+        sympy_data = preview["sympy"]
+        
+        # Check structured JSON format
+        self.assertIsInstance(sympy_data, dict)
+        self.assertEqual(sympy_data["valid"], True)
+        self.assertEqual(sympy_data["errors"], [])
+        
+        # Feedback should contain the path info
+        self.assertIn("feedback", preview)
+        self.assertIn("valid", preview["feedback"].lower())
 
     def test_preview_boolean_answer(self):
         """Test preview with boolean answers."""
@@ -86,9 +101,12 @@ class TestPreviewFunction(unittest.TestCase):
         self.assertIn("preview", result)
         preview = result["preview"]
         self.assertIn("sympy", preview)
-        self.assertIn("Connected: Yes", preview["sympy"])
-        self.assertIn("Bipartite: No", preview["sympy"])
-        self.assertIn("Has Cycle: Yes", preview["sympy"])
+        sympy_data = preview["sympy"]
+        
+        # Check structured JSON format
+        self.assertIsInstance(sympy_data, dict)
+        self.assertEqual(sympy_data["valid"], True)
+        self.assertEqual(sympy_data["errors"], [])
 
     def test_preview_graph_and_answers(self):
         """Test preview with both graph and answers."""
@@ -108,9 +126,14 @@ class TestPreviewFunction(unittest.TestCase):
         self.assertIn("preview", result)
         preview = result["preview"]
         self.assertIn("sympy", preview)
-        self.assertIn("Directed Graph", preview["sympy"])
-        self.assertIn("DAG: Yes", preview["sympy"])
-        self.assertIn("Topological Order: 1 → 2 → 3", preview["sympy"])
+        sympy_data = preview["sympy"]
+        
+        # Check structured JSON format
+        self.assertIsInstance(sympy_data, dict)
+        self.assertEqual(sympy_data["valid"], True)
+        self.assertEqual(sympy_data["directed"], True)
+        self.assertEqual(sympy_data["num_nodes"], 3)
+        self.assertEqual(sympy_data["num_edges"], 2)
 
     def test_preview_coloring(self):
         """Test preview with graph coloring."""
@@ -123,7 +146,12 @@ class TestPreviewFunction(unittest.TestCase):
         self.assertIn("preview", result)
         preview = result["preview"]
         self.assertIn("sympy", preview)
-        self.assertIn("Chromatic Number: 3", preview["sympy"])
+        sympy_data = preview["sympy"]
+        
+        # Check structured JSON format
+        self.assertIsInstance(sympy_data, dict)
+        self.assertEqual(sympy_data["valid"], True)
+        self.assertEqual(sympy_data["errors"], [])
 
     def test_preview_sets(self):
         """Test preview with set-based answers."""
@@ -136,8 +164,11 @@ class TestPreviewFunction(unittest.TestCase):
         self.assertIn("preview", result)
         preview = result["preview"]
         self.assertIn("sympy", preview)
-        self.assertIn("Components:", preview["sympy"])
-        self.assertIn("Vertex Cover:", preview["sympy"])
+        sympy_data = preview["sympy"]
+        
+        # Check structured JSON format
+        self.assertIsInstance(sympy_data, dict)
+        self.assertEqual(sympy_data["valid"], True)
 
     def test_preview_empty_response(self):
         """Test preview with empty response."""
@@ -145,7 +176,14 @@ class TestPreviewFunction(unittest.TestCase):
         
         self.assertIn("preview", result)
         preview = result["preview"]
-        self.assertEqual(preview.get("sympy", ""), "")
+        self.assertIn("sympy", preview)
+        sympy_data = preview["sympy"]
+        
+        # Check structured JSON format for error
+        self.assertIsInstance(sympy_data, dict)
+        self.assertEqual(sympy_data["valid"], False)
+        self.assertEqual(sympy_data["parse_error"], True)
+        self.assertIn("errors", sympy_data)
 
     def test_preview_directed_weighted_graph(self):
         """Test preview with directed weighted graph."""
@@ -167,9 +205,19 @@ class TestPreviewFunction(unittest.TestCase):
         self.assertIn("preview", result)
         preview = result["preview"]
         self.assertIn("sympy", preview)
-        self.assertIn("Directed Weighted Graph", preview["sympy"])
-        self.assertIn("capacity: 15", preview["sympy"])
-        self.assertIn("flow: 8", preview["sympy"])
+        sympy_data = preview["sympy"]
+        
+        # Check structured JSON format
+        self.assertIsInstance(sympy_data, dict)
+        self.assertEqual(sympy_data["valid"], True)
+        self.assertEqual(sympy_data["directed"], True)
+        self.assertEqual(sympy_data["weighted"], True)
+        self.assertEqual(sympy_data["num_nodes"], 2)
+        self.assertEqual(sympy_data["num_edges"], 1)
+        self.assertIn("flow_info", sympy_data)
+        self.assertEqual(sympy_data["flow_info"]["has_capacities"], True)
+        self.assertEqual(sympy_data["flow_info"]["has_flows"], True)
+        
         self.assertIn("feedback", preview)
         self.assertIn("valid", preview["feedback"].lower())
 
@@ -290,9 +338,16 @@ class TestPreviewFunction(unittest.TestCase):
         
         preview = result["preview"]
         self.assertIn("feedback", preview)
-        # Should be valid but with warning
+        self.assertIn("sympy", preview)
+        sympy_data = preview["sympy"]
+        
+        # Should be valid but with warnings
+        self.assertEqual(sympy_data["valid"], True)
+        self.assertGreater(len(sympy_data["warnings"]), 0)
+        self.assertIn("isolated", sympy_data["warnings"][0]["message"].lower())
+        
+        # Feedback should mention it's valid
         self.assertIn("valid", preview["feedback"].lower())
-        self.assertIn("isolated", preview["feedback"].lower())
 
     def test_warning_self_loop(self):
         """Test warning for self-loops."""

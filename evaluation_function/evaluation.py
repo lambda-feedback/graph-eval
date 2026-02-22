@@ -8,6 +8,109 @@ from .schemas.evaluation_types import EvaluationType
 
 
 # =============================================================================
+# FRONTEND FORMAT PARSER
+# =============================================================================
+
+def parse_frontend_graph(data: dict) -> Graph:
+    """
+    Parse pipe-delimited frontend graph format into Graph object.
+    
+    Frontend format:
+    - nodes: ["id|label|x|y", ...]
+    - edges: ["source|target|weight|label", ...]
+    - directed: boolean
+    - weighted: boolean
+    - multigraph: boolean
+    
+    Example:
+        {
+          "nodes": ["city1|New York|120|180"],
+          "edges": ["city1|city2|215|I-95 North"],
+          "directed": true,
+          "weighted": true,
+          "multigraph": false
+        }
+    
+    Args:
+        data: Dictionary with pipe-delimited node and edge strings
+        
+    Returns:
+        Graph object with parsed nodes and edges
+    """
+    nodes = []
+    edges = []
+    
+    # Parse nodes: "id|label|x|y"
+    for node_str in data.get("nodes", []):
+        if not isinstance(node_str, str):
+            continue
+            
+        parts = node_str.split("|")
+        if len(parts) >= 1:
+            node = Node(
+                id=parts[0],
+                label=parts[1] if len(parts) > 1 else parts[0],
+                x=float(parts[2]) if len(parts) > 2 and parts[2] else None,
+                y=float(parts[3]) if len(parts) > 3 and parts[3] else None
+            )
+            nodes.append(node)
+    
+    # Parse edges: "source|target|weight|label"
+    for edge_str in data.get("edges", []):
+        if not isinstance(edge_str, str):
+            continue
+            
+        parts = edge_str.split("|")
+        if len(parts) >= 2:
+            edge = Edge(
+                source=parts[0],
+                target=parts[1],
+                weight=float(parts[2]) if len(parts) > 2 and parts[2] and parts[2].replace('.', '').replace('-', '').isdigit() else None,
+                label=parts[3] if len(parts) > 3 else None
+            )
+            edges.append(edge)
+    
+    return Graph(
+        nodes=nodes,
+        edges=edges,
+        directed=data.get("directed", False),
+        weighted=data.get("weighted", False),
+        multigraph=data.get("multigraph", False)
+    )
+
+
+def is_frontend_format(data: dict) -> bool:
+    """
+    Check if the data is in frontend pipe-delimited format.
+    
+    Args:
+        data: Dictionary to check
+        
+    Returns:
+        True if data appears to be in frontend format
+    """
+    if not isinstance(data, dict):
+        return False
+    
+    # Check if it has nodes field with string elements
+    nodes = data.get("nodes", [])
+    if nodes and isinstance(nodes, list) and len(nodes) > 0:
+        # Check if first node is a pipe-delimited string
+        first_node = nodes[0]
+        if isinstance(first_node, str) and "|" in first_node:
+            return True
+    
+    # Also check edges
+    edges = data.get("edges", [])
+    if edges and isinstance(edges, list) and len(edges) > 0:
+        first_edge = edges[0]
+        if isinstance(first_edge, str) and "|" in first_edge:
+            return True
+    
+    return False
+
+
+# =============================================================================
 # FEEDBACK GENERATION HELPERS
 # =============================================================================
 
@@ -471,16 +574,26 @@ def evaluation_function(
     """
     
     try:
-        # Parse inputs
+        # Parse inputs - handle both frontend pipe-delimited and standard formats
         if isinstance(response, dict):
-            response_obj = Response(**response)
+            # Check if it's frontend pipe-delimited format
+            if is_frontend_format(response):
+                parsed_graph = parse_frontend_graph(response)
+                response_obj = Response(graph=parsed_graph)
+            else:
+                response_obj = Response(**response)
         elif isinstance(response, Response):
             response_obj = response
         else:
             return Result(is_correct=False, feedback="Invalid response format")
         
         if isinstance(answer, dict):
-            answer_obj = Answer(**answer)
+            # Check if it's frontend pipe-delimited format
+            if is_frontend_format(answer):
+                parsed_graph = parse_frontend_graph(answer)
+                answer_obj = Answer(graph=parsed_graph)
+            else:
+                answer_obj = Answer(**answer)
         elif isinstance(answer, Answer):
             answer_obj = answer
         else:

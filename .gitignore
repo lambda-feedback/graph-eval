@@ -130,6 +130,7 @@ dmypy.json
 
 # VSCode configuration
 .vscode
+/evaluation_function_fsa
 
 # Test reports
 reports/

@@ -416,6 +416,91 @@ def errors_to_dict_list(errors: List[ValidationError]) -> List[Dict]:
     ]
 
 
+def get_structured_graph_info(graph: Graph) -> Dict[str, Any]:
+    """
+    Extract structured information about a graph.
+    
+    Returns a dictionary with graph properties, counts, and metadata
+    for programmatic use.
+    """
+    # Build adjacency info for analysis
+    node_edges = {node.id: [] for node in graph.nodes}
+    for edge in graph.edges:
+        if edge.source in node_edges:
+            node_edges[edge.source].append(edge)
+        if edge.target in node_edges and not graph.directed:
+            node_edges[edge.target].append(edge)
+    
+    # Find isolated nodes
+    isolated_nodes = [nid for nid, edges in node_edges.items() if not edges]
+    
+    # Check for self-loops
+    has_self_loops = any(edge.source == edge.target for edge in graph.edges)
+    num_self_loops = sum(1 for edge in graph.edges if edge.source == edge.target)
+    
+    # Degree information
+    if graph.directed:
+        in_degrees = {node.id: 0 for node in graph.nodes}
+        out_degrees = {node.id: 0 for node in graph.nodes}
+        for edge in graph.edges:
+            if edge.source in out_degrees:
+                out_degrees[edge.source] += 1
+            if edge.target in in_degrees:
+                in_degrees[edge.target] += 1
+        
+        degree_info = {
+            "max_in_degree": max(in_degrees.values()) if in_degrees else 0,
+            "max_out_degree": max(out_degrees.values()) if out_degrees else 0,
+            "avg_in_degree": sum(in_degrees.values()) / len(in_degrees) if in_degrees else 0,
+            "avg_out_degree": sum(out_degrees.values()) / len(out_degrees) if out_degrees else 0,
+        }
+    else:
+        degrees = {node.id: len(edges) for node.id, edges in node_edges.items()}
+        degree_info = {
+            "max_degree": max(degrees.values()) if degrees else 0,
+            "min_degree": min(degrees.values()) if degrees else 0,
+            "avg_degree": sum(degrees.values()) / len(degrees) if degrees else 0,
+        }
+    
+    # Weight information (if weighted)
+    weight_info = {}
+    if graph.weighted and graph.edges:
+        weights = [e.weight for e in graph.edges if e.weight is not None]
+        if weights:
+            weight_info = {
+                "min_weight": min(weights),
+                "max_weight": max(weights),
+                "avg_weight": sum(weights) / len(weights),
+                "total_weight": sum(weights),
+            }
+    
+    # Capacity/flow information (if present)
+    flow_info = {}
+    capacities = [e.capacity for e in graph.edges if e.capacity is not None]
+    flows = [e.flow for e in graph.edges if e.flow is not None]
+    if capacities:
+        flow_info["has_capacities"] = True
+        flow_info["total_capacity"] = sum(capacities)
+    if flows:
+        flow_info["has_flows"] = True
+        flow_info["total_flow"] = sum(flows)
+    
+    return {
+        "directed": graph.directed,
+        "weighted": graph.weighted,
+        "multigraph": graph.multigraph,
+        "num_nodes": len(graph.nodes),
+        "num_edges": len(graph.edges),
+        "isolated_nodes": isolated_nodes,
+        "has_self_loops": has_self_loops,
+        "num_self_loops": num_self_loops,
+        "degree_info": degree_info,
+        "weight_info": weight_info,
+        "flow_info": flow_info,
+        "graph_name": graph.name,
+    }
+
+
 def format_graph_text(graph: Graph) -> str:
     """Format a graph as readable text."""
     lines = []
@@ -623,7 +708,15 @@ def preview_function(response: Any, params: Params) -> Result:
         return Result(
             preview=Preview(
                 feedback="No response provided! Please build your graph or enter your answer.",
-                sympy={"valid": False, "parse_error": True}
+                sympy={
+                    "valid": False,
+                    "parse_error": True,
+                    "errors": [{
+                        "message": "No response provided",
+                        "code": "NO_RESPONSE",
+                        "severity": "error"
+                    }]
+                }
             )
         )
     
@@ -639,23 +732,38 @@ def preview_function(response: Any, params: Params) -> Result:
         if "validation error" in error_msg.lower():
             if "nodes" in error_msg.lower():
                 feedback = "Your graph is missing the 'nodes' list. Every graph needs nodes!"
+                error_code = "MISSING_NODES"
             elif "edges" in error_msg.lower():
                 feedback = "There's an issue with your edges. Each edge needs source and target nodes."
+                error_code = "INVALID_EDGES"
             elif "directed" in error_msg.lower():
                 feedback = "Your graph needs to specify if it's directed (true/false)."
+                error_code = "MISSING_DIRECTED"
             else:
                 feedback = f"Your graph structure isn't quite right. Check your JSON format."
+                error_code = "INVALID_STRUCTURE"
         elif "json" in error_msg.lower():
             feedback = "Couldn't read your data. Make sure it's properly formatted JSON."
+            error_code = "INVALID_JSON"
         elif "no response" in error_msg.lower():
             feedback = "No response provided! Please build your graph before checking."
+            error_code = "NO_RESPONSE"
         else:
             feedback = f"There's a problem with your format: {error_msg}"
+            error_code = "PARSE_ERROR"
         
         return Result(
             preview=Preview(
                 feedback=feedback,
-                sympy=str(response)
+                sympy={
+                    "valid": False,
+                    "parse_error": True,
+                    "errors": [{
+                        "message": error_msg,
+                        "code": error_code,
+                        "severity": "error"
+                    }]
+                }
             )
         )
     
@@ -673,12 +781,18 @@ def preview_function(response: Any, params: Params) -> Result:
             feedback = "Your graph has some issues that need to be fixed before submission.\n\n"
             feedback += format_errors_for_preview(all_errors)
             
-            text_output = format_graph_text(response_obj.graph)
+            # Build structured output with basic info
+            sympy_output = {
+                "valid": False,
+                "errors": errors_to_dict_list(all_errors),
+                "num_nodes": len(response_obj.graph.nodes),
+                "num_edges": len(response_obj.graph.edges),
+            }
             
             return Result(
                 preview=Preview(
                     feedback=feedback,
-                    sympy=text_output
+                    sympy=sympy_output
                 )
             )
         
@@ -701,14 +815,17 @@ def preview_function(response: Any, params: Params) -> Result:
         feedback = "Hold on! Your response has issues that need to be addressed.\n\n"
         feedback += format_errors_for_preview(all_errors + warnings)
         
-        text_parts = []
+        # Build structured output
+        sympy_output = {
+            "valid": False,
+            "errors": errors_to_dict_list(all_errors),
+            "warnings": errors_to_dict_list(warnings),
+        }
+        
+        # Add graph info if present
         if response_obj.graph:
-            text_parts.append(format_graph_text(response_obj.graph))
-        answer_text = format_answer_text(response_obj)
-        if answer_text:
-            text_parts.append("\nAnswers:")
-            text_parts.append(answer_text)
-        sympy_output = "\n".join(text_parts) if text_parts else str(response)
+            graph_info = get_structured_graph_info(response_obj.graph)
+            sympy_output.update(graph_info)
         
         return Result(
             preview=Preview(
@@ -717,13 +834,18 @@ def preview_function(response: Any, params: Params) -> Result:
             )
         )
     
-    # Step 4: Build success preview with formatted output
-    text_parts = []
+    # Step 4: Build success preview with structured output
     latex_parts = []
+    
+    # Build structured JSON output
+    sympy_output = {
+        "valid": True,
+        "errors": [],
+        "warnings": errors_to_dict_list(warnings),
+    }
     
     # Format the graph if present
     if response_obj.graph:
-        text_parts.append(format_graph_text(response_obj.graph))
         latex_parts.append(format_graph_latex(response_obj.graph))
         
         # Add graph summary
@@ -735,14 +857,12 @@ def preview_function(response: Any, params: Params) -> Result:
         node_word = "node" if len(graph.nodes) == 1 else "nodes"
         edge_word = "edge" if len(graph.edges) == 1 else "edges"
         summary = f"{graph_type} graph with {len(graph.nodes)} {node_word} and {len(graph.edges)} {edge_word}"
+        
+        # Add structured graph info to sympy output
+        graph_info = get_structured_graph_info(response_obj.graph)
+        sympy_output.update(graph_info)
     else:
         summary = "Answer (no graph)"
-    
-    # Format any answers
-    answer_text = format_answer_text(response_obj)
-    if answer_text:
-        text_parts.append("\nAnswers:")
-        text_parts.append(answer_text)
     
     # Build feedback message
     if has_warnings:
@@ -755,8 +875,7 @@ def preview_function(response: Any, params: Params) -> Result:
         feedback = f"Great! Your response is structurally valid and ready for submission.\n\n"
         feedback += f"Summary: {summary}"
     
-    # Combine text parts
-    sympy_output = "\n".join(text_parts) if text_parts else "Valid response"
+    # Set latex output
     latex_output = "\\\\".join(latex_parts) if latex_parts else summary
     
     return Result(
