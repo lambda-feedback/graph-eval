@@ -32,6 +32,46 @@ class IsomorphismParams(BaseModel):
     pass
 
 
+class MaxFlowParams(BaseModel):
+    pass
+
+
+class BipartiteMatchingParams(BaseModel):
+    pass
+
+
+class ComponentParams(BaseModel):
+    pass
+
+
+class ArticulationParams(BaseModel):
+    pass
+
+
+class DegreeSequenceParams(BaseModel):
+    pass
+
+
+class CliqueParams(BaseModel):
+    pass
+
+
+class IndependentSetParams(BaseModel):
+    pass
+
+
+class VertexCoverParams(BaseModel):
+    pass
+
+
+class TopologicalSortParams(BaseModel):
+    pass
+
+
+class TraversalParams(BaseModel):
+    pass
+
+
 class EvaluationParams(BaseModel):
     evaluation_type: EvaluationType = Field(..., description="The type of evaluation to perform")
 
@@ -40,6 +80,42 @@ class EvaluationParams(BaseModel):
     graph_coloring: Optional[GraphColoringParams] = None
     cycle_detection: Optional[CycleDetectionParams] = None
     isomorphism: Optional[IsomorphismParams] = None
+    
+    # Flow params
+    max_flow: Optional[MaxFlowParams] = None
+    bipartite_matching: Optional[BipartiteMatchingParams] = None
+    
+    # Component params
+    components: Optional[ComponentParams] = None
+    articulation: Optional[ArticulationParams] = None
+    
+    # Structure params
+    degree_sequence: Optional[DegreeSequenceParams] = None
+    clique: Optional[CliqueParams] = None
+    independent_set: Optional[IndependentSetParams] = None
+    vertex_cover: Optional[VertexCoverParams] = None
+    
+    # Ordering params
+    topological_sort: Optional[TopologicalSortParams] = None
+    traversal: Optional[TraversalParams] = None
+    
+    # Global params
+    partial_credit: bool = Field(
+        False,
+        description="Whether to award partial credit"
+    )
+    feedback_level: Literal["minimal", "standard", "detailed"] = Field(
+        "standard",
+        description="Level of detail in feedback"
+    )
+    timeout: float = Field(
+        30.0,
+        description="Global timeout for computation in seconds"
+    )
+    tolerance: float = Field(
+        1e-9,
+        description="Numerical tolerance for comparisons"
+    )
 
     class Config:
         extra = "allow"
