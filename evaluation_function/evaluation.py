@@ -1,5 +1,29 @@
 from typing import Any, Optional, List, Dict, Tuple
 from lf_toolkit.evaluation import Result, Params
+from pydantic import ValidationError
+
+from evaluation_function.algorithms import (
+    bipartite_info,
+    clique_number,
+    connectivity_info,
+    cycle_info,
+    degree_sequence,
+    has_hamiltonian_cycle,
+    has_hamiltonian_path,
+    is_complete,
+    is_dag,
+    is_eulerian,
+    is_forest,
+    is_n_colorable,
+    is_planar,
+    is_regular,
+    is_semi_eulerian,
+    is_subgraph,
+    is_tree,
+    isomorphism_info,
+)
+from evaluation_function.schemas import Answer, EvaluationParams, Graph, Response
+
 
 from .schemas.graph import Graph, Node, Edge
 from .schemas.request import Response, Answer
@@ -571,116 +595,301 @@ def evaluation_function(
     return types and that evaluation_function() is the main function used
     to output the evaluation response.
     """
-    
+
+    # ── helpers ──────────────────────────────────────────────────────────
+
+    def _to_dictish(obj: Any) -> Any:
+        if obj is None:
+            return None
+        if isinstance(obj, (dict, list, str, int, float, bool)):
+            return obj
+        if hasattr(obj, "model_dump"):
+            return obj.model_dump()
+        if hasattr(obj, "dict"):
+            return obj.dict()
+        return obj
+
+    def _ok() -> Result:
+        return Result(is_correct=True)
+
+    def _err(msg: str) -> Result:
+        return Result(is_correct=False, feedback_items=[("error", msg)])
+
+    # ── parse & validate inputs ──────────────────────────────────────────
+
     try:
-        # Parse inputs - handle both frontend pipe-delimited and standard formats
-        if isinstance(response, dict):
-            # Check if it's frontend pipe-delimited format
-            if is_frontend_format(response):
-                parsed_graph = parse_frontend_graph(response)
-                response_obj = Response(graph=parsed_graph)
-            else:
-                response_obj = Response(**response)
-        elif isinstance(response, Response):
-            response_obj = response
-        else:
-            return Result(is_correct=False, feedback_items=[('error', 'Invalid response format')])
-        
-        if isinstance(answer, dict):
-            # Check if it's frontend pipe-delimited format
-            if is_frontend_format(answer):
-                parsed_graph = parse_frontend_graph(answer)
-                answer_obj = Answer(graph=parsed_graph)
-            else:
-                answer_obj = Answer(**answer)
-        elif isinstance(answer, Answer):
-            answer_obj = answer
-        else:
-            return Result(is_correct=False, feedback_items=[('error', 'Invalid answer format')])
-        
-        if isinstance(params, dict):
-            eval_params = EvaluationParams(**params)
-        elif isinstance(params, EvaluationParams):
-            eval_params = params
-        else:
-            # Use defaults
-            eval_params = EvaluationParams(
-                evaluation_type=EvaluationType.GRAPH_MATCH,
-                feedback_level="standard",
-                tolerance=1e-9
-            )
-        
-        # Helper to convert tuple to Result
-        def make_result(eval_result):
-            is_correct, feedback = eval_result
-            # Result expects feedback_items as a list of tuples
-            # We pass feedback as a single tuple
-            feedback_items = [('feedback', feedback)] if feedback else []
-            return Result(is_correct=is_correct, feedback_items=feedback_items)
-        
-        # Route to appropriate evaluation based on evaluation type or available fields
-        evaluation_type = getattr(eval_params, 'evaluation_type', None)
-        
-        # Graph matching
-        if evaluation_type == "graph_match" or (response_obj.graph and answer_obj.graph and not evaluation_type):
-            return make_result(evaluate_graph_match(response_obj, answer_obj, eval_params))
-        
-        # Boolean answers
-        if response_obj.is_connected is not None or answer_obj.is_connected is not None:
-            return make_result(evaluate_boolean_answer(response_obj, answer_obj, eval_params,
-                                                   "is_connected", "Connectivity"))
-        if response_obj.is_bipartite is not None or answer_obj.is_bipartite is not None:
-            return make_result(evaluate_boolean_answer(response_obj, answer_obj, eval_params,
-                                                   "is_bipartite", "Bipartite"))
-        if response_obj.is_tree is not None or answer_obj.is_tree is not None:
-            return make_result(evaluate_boolean_answer(response_obj, answer_obj, eval_params,
-                                                   "is_tree", "Tree"))
-        if response_obj.has_cycle is not None or answer_obj.has_cycle is not None:
-            return make_result(evaluate_boolean_answer(response_obj, answer_obj, eval_params,
-                                                   "has_cycle", "Cycle Detection"))
-        
-        # Path answers
-        if response_obj.path is not None or answer_obj.path is not None:
-            return make_result(evaluate_path_answer(response_obj, answer_obj, eval_params, "path"))
-        if response_obj.topological_order is not None or answer_obj.topological_order is not None:
-            return make_result(evaluate_path_answer(response_obj, answer_obj, eval_params, "topological_order"))
-        
-        # Numeric answers
-        if response_obj.distance is not None or answer_obj.distance is not None:
-            return make_result(evaluate_numeric_answer(response_obj, answer_obj, eval_params,
-                                                   "distance", "Distance"))
-        if response_obj.chromatic_number is not None or answer_obj.chromatic_number is not None:
-            return make_result(evaluate_numeric_answer(response_obj, answer_obj, eval_params,
-                                                   "chromatic_number", "Chromatic Number"))
-        if response_obj.flow_value is not None or answer_obj.flow_value is not None:
-            return make_result(evaluate_numeric_answer(response_obj, answer_obj, eval_params,
-                                                   "flow_value", "Maximum Flow"))
-        
-        # Coloring
-        if response_obj.coloring is not None:
-            return make_result(evaluate_coloring_answer(response_obj, answer_obj, eval_params))
-        
-        # Set answers
-        if response_obj.vertex_cover is not None or answer_obj.vertex_cover is not None:
-            return make_result(evaluate_set_answer(response_obj, answer_obj, eval_params,
-                                              "vertex_cover", "Vertex Cover"))
-        if response_obj.independent_set is not None or answer_obj.independent_set is not None:
-            return make_result(evaluate_set_answer(response_obj, answer_obj, eval_params,
-                                              "independent_set", "Independent Set"))
-        if response_obj.clique is not None or answer_obj.clique is not None:
-            return make_result(evaluate_set_answer(response_obj, answer_obj, eval_params,
-                                              "clique", "Clique"))
-        
-        # Tree answers
-        if response_obj.spanning_tree is not None or answer_obj.spanning_tree is not None:
-            return make_result(evaluate_tree_answer(response_obj, answer_obj, eval_params, "spanning_tree"))
-        if response_obj.mst is not None or answer_obj.mst is not None:
-            return make_result(evaluate_tree_answer(response_obj, answer_obj, eval_params, "mst"))
-        
-        # Default: simple equality check
-        is_correct = response == answer
-        feedback = "Correct" if is_correct else "Incorrect"
-        return Result(is_correct=is_correct, feedback_items=[('feedback', feedback)])
-        
-    except Exception as e:
-        return Result(is_correct=False, feedback_items=[('error', f'Evaluation error: {str(e)}')])
+        resp = Response.model_validate(_to_dictish(response) or {})
+    except ValidationError as e:
+        return _err(f"Invalid response schema: {e}")
+
+    try:
+        ans = Answer.model_validate(_to_dictish(answer) or {})
+    except ValidationError as e:
+        return _err(f"Invalid answer schema: {e}")
+
+    raw_params = _to_dictish(params) or {}
+    try:
+        p = EvaluationParams.model_validate(raw_params)
+    except ValidationError as e:
+        return _err(
+            "Invalid params schema. Expected e.g. "
+            "{'evaluation_type': 'connectivity'|'bipartite'|'graph_coloring'|...}. "
+            f"Error: {e}"
+        )
+
+    # ── resolve graphs ───────────────────────────────────────────────────
+    # student_graph (resp.graph) is always present — the student submits a graph.
+    # ans.graph is only present for isomorphism / subgraph checks where the
+    # teacher provides a reference graph.  For all other eval types the teacher
+    # sets the expected property value directly in the answer (e.g. ans.is_connected).
+    student_graph: Graph = resp.graph
+    if student_graph is None:
+        return _err("response.graph is required — the student must submit a graph.")
+
+    # ── helper: grade a simple boolean property ──────────────────────────
+    def _grade_bool(
+        label: str,
+        expected: Optional[bool],
+        compute_fn: Callable[[Graph], bool],
+    ) -> Result:
+        if expected is None:
+            return _err(f"{label}: expected value not set by the teacher in the answer.")
+        stu = compute_fn(student_graph)
+        if bool(stu) == bool(expected):
+            return _ok()
+        return _err(f"{label}: expected={expected}, got={stu}.")
+
+    # ── evaluation-type handlers ─────────────────────────────────────────
+
+    def _eval_connectivity() -> Result:
+        conn_params = p.connectivity
+        check_type = conn_params.check_type if conn_params else "connected"
+
+        expected = ans.is_connected
+        if expected is None:
+            return _err("Connectivity: expected value (answer.is_connected) not set by the teacher.")
+
+        student_value = connectivity_info(
+            student_graph, connectivity_type=check_type, return_components=False
+        ).is_connected
+
+        if bool(student_value) == bool(expected):
+            return _ok()
+
+        details = connectivity_info(student_graph, connectivity_type=check_type, return_components=True)
+        fb = f"Connectivity ({check_type}): expected={expected}, got={student_value}."
+        if details.components is not None:
+            fb += f" Components={details.components}."
+        return _err(fb)
+
+    def _eval_bipartite() -> Result:
+        b_params = p.bipartite
+        want_parts = bool(b_params.return_partitions) if b_params else False
+        want_odd = bool(b_params.return_odd_cycle) if b_params else False
+
+        expected = ans.is_bipartite
+        if expected is None:
+            return _err("Bipartite: expected value (answer.is_bipartite) not set by the teacher.")
+
+        student_value = bipartite_info(student_graph).is_bipartite
+
+        if bool(student_value) == bool(expected):
+            return _ok()
+
+        details = bipartite_info(student_graph, return_partitions=want_parts, return_odd_cycle=want_odd)
+        fb = f"Bipartite: expected={expected}, got={student_value}."
+        if want_parts and details.partitions is not None:
+            fb += f" Partitions={details.partitions}."
+        if want_odd and details.odd_cycle is not None:
+            fb += f" Odd cycle={details.odd_cycle}."
+        return _err(fb)
+
+    def _eval_cycle_detection() -> Result:
+        expected = ans.has_cycle
+        if expected is None:
+            return _err("Cycle detection: expected value (answer.has_cycle) not set by the teacher.")
+
+        student_value = cycle_info(student_graph).has_cycle
+
+        if bool(student_value) == bool(expected):
+            return _ok()
+
+        details = cycle_info(student_graph)
+        fb = f"Cycle detection: expected={expected}, got={student_value}."
+        if details.cycle is not None:
+            fb += f" Cycle found={details.cycle}."
+        return _err(fb)
+
+    def _eval_graph_coloring() -> Result:
+        gc_params = p.graph_coloring
+        num_colors = gc_params.num_colors if (gc_params and gc_params.num_colors is not None) else ans.num_colors
+        if num_colors is None:
+            return _err("Missing num_colors: provide in params.graph_coloring.num_colors or answer.num_colors.")
+
+        expected = ans.is_colorable
+        if expected is None:
+            return _err("Graph coloring: expected value (answer.is_colorable) not set by the teacher.")
+
+        student_coloring = resp.coloring
+
+        if student_coloring is not None:
+            adj: dict[str, set[str]] = {n.id: set() for n in student_graph.nodes}
+            for e in student_graph.edges:
+                adj[e.source].add(e.target)
+                if not student_graph.directed:
+                    adj[e.target].add(e.source)
+
+            valid_coloring = True
+            invalid_reason = ""
+            node_ids = {n.id for n in student_graph.nodes}
+            for nid in node_ids:
+                if nid not in student_coloring:
+                    valid_coloring = False
+                    invalid_reason = f"Node '{nid}' has no color assigned."
+                    break
+            if valid_coloring:
+                for nid, color in student_coloring.items():
+                    if color < 0 or color >= num_colors:
+                        valid_coloring = False
+                        invalid_reason = f"Node '{nid}' has color {color}, but only {num_colors} colors (0..{num_colors - 1}) are allowed."
+                        break
+                    for nb in adj.get(nid, set()):
+                        if student_coloring.get(nb) == color:
+                            valid_coloring = False
+                            invalid_reason = f"Adjacent nodes '{nid}' and '{nb}' share color {color}."
+                            break
+                    if not valid_coloring:
+                        break
+
+            if not valid_coloring:
+                return _err(f"Graph coloring ({num_colors}-coloring): invalid coloring. {invalid_reason}")
+
+            if not expected:
+                return _err(
+                    f"Graph coloring ({num_colors}-coloring): student provided a valid coloring, "
+                    f"but the expected answer says the graph is NOT {num_colors}-colorable."
+                )
+            return _ok()
+
+        student_value = is_n_colorable(student_graph, num_colors).is_colorable
+
+        if bool(student_value) == bool(expected):
+            return _ok()
+
+        fb = f"Graph coloring ({num_colors}-coloring): expected={expected}, got={student_value}."
+        ref = is_n_colorable(student_graph, num_colors)
+        if ref.coloring is not None:
+            fb += f" A valid coloring exists: {ref.coloring}."
+        return _err(fb)
+
+    def _eval_isomorphism() -> Result:
+        if ans.graph is None:
+            return _err("Isomorphism requires answer.graph (the teacher's reference graph).")
+
+        result = isomorphism_info(ans.graph, student_graph)
+
+        # Teacher provides a reference graph; by default the student's graph
+        # must be isomorphic to it (expected=True).
+        expected = ans.is_isomorphic if ans.is_isomorphic is not None else True
+
+        if bool(result.is_isomorphic) == bool(expected):
+            return _ok()
+
+        fb = f"Isomorphism: expected={expected}, got={result.is_isomorphic}."
+        if result.node_mapping is not None:
+            fb += f" Mapping={result.node_mapping}."
+        return _err(fb)
+
+    def _eval_planarity() -> Result:
+        return _grade_bool("Planarity", ans.is_planar, is_planar)
+
+    def _eval_tree() -> Result:
+        return _grade_bool("Tree", ans.is_tree, is_tree)
+
+    def _eval_forest() -> Result:
+        return _grade_bool("Forest", ans.is_forest, is_forest)
+
+    def _eval_dag() -> Result:
+        return _grade_bool("DAG", ans.is_dag, is_dag)
+
+    def _eval_eulerian() -> Result:
+        return _grade_bool("Eulerian circuit", ans.is_eulerian, is_eulerian)
+
+    def _eval_semi_eulerian() -> Result:
+        return _grade_bool("Semi-Eulerian (Euler path)", ans.is_semi_eulerian, is_semi_eulerian)
+
+    def _eval_regular() -> Result:
+        return _grade_bool("Regular", ans.is_regular, is_regular)
+
+    def _eval_complete() -> Result:
+        return _grade_bool("Complete", ans.is_complete, is_complete)
+
+    def _eval_degree_sequence() -> Result:
+        expected_seq = ans.degree_sequence
+        if expected_seq is None:
+            return _err("Degree sequence: expected value (answer.degree_sequence) not set by the teacher.")
+
+        student_seq = degree_sequence(student_graph)
+
+        expected_sorted = sorted(expected_seq, reverse=True)
+        student_sorted = sorted(student_seq, reverse=True)
+
+        if expected_sorted == student_sorted:
+            return _ok()
+        return _err(
+            f"Degree sequence: expected={expected_sorted}, got={student_sorted}."
+        )
+
+    def _eval_subgraph() -> Result:
+        if ans.graph is None:
+            return _err("Subgraph check requires answer.graph (the parent graph from the teacher).")
+
+        result = is_subgraph(student_graph, ans.graph)
+        if result:
+            return _ok()
+        return _err("Subgraph: the student's graph is NOT a subgraph of the teacher's graph.")
+
+    def _eval_hamiltonian_path() -> Result:
+        return _grade_bool("Hamiltonian path", ans.has_hamiltonian_path, has_hamiltonian_path)
+
+    def _eval_hamiltonian_cycle() -> Result:
+        return _grade_bool("Hamiltonian cycle", ans.has_hamiltonian_cycle, has_hamiltonian_cycle)
+
+    def _eval_clique_number() -> Result:
+        expected_cn = ans.clique_number
+        if expected_cn is None:
+            return _err("Clique number: expected value (answer.clique_number) not set by the teacher.")
+
+        student_cn = clique_number(student_graph)
+
+        if student_cn == expected_cn:
+            return _ok()
+        return _err(f"Clique number: expected={expected_cn}, got={student_cn}.")
+
+    # ── dispatch ─────────────────────────────────────────────────────────
+
+    dispatch: dict[str, Callable[[], Result]] = {
+        "connectivity": _eval_connectivity,
+        "bipartite": _eval_bipartite,
+        "cycle_detection": _eval_cycle_detection,
+        "graph_coloring": _eval_graph_coloring,
+        "isomorphism": _eval_isomorphism,
+        "planarity": _eval_planarity,
+        "tree": _eval_tree,
+        "forest": _eval_forest,
+        "dag": _eval_dag,
+        "eulerian": _eval_eulerian,
+        "semi_eulerian": _eval_semi_eulerian,
+        "regular": _eval_regular,
+        "complete": _eval_complete,
+        "degree_sequence": _eval_degree_sequence,
+        "subgraph": _eval_subgraph,
+        "hamiltonian_path": _eval_hamiltonian_path,
+        "hamiltonian_cycle": _eval_hamiltonian_cycle,
+        "clique_number": _eval_clique_number,
+    }
+
+    handler = dispatch.get(p.evaluation_type)
+    if handler is None:
+        return _err(f"Unsupported evaluation_type: '{p.evaluation_type}'.")
+    return handler()
