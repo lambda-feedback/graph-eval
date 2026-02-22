@@ -1,4 +1,4 @@
-from typing import Any, Optional, List, Dict, Tuple
+from typing import Any, Callable, Optional, List, Dict, Tuple
 from lf_toolkit.evaluation import Result, Params
 from pydantic import ValidationError
 

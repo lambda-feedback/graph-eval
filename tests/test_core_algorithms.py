@@ -1,4 +1,5 @@
 import pytest
+from typing import Callable
 
 from evaluation_function.algorithms.bipartite import bipartite_info
 from evaluation_function.algorithms.connectivity import connectivity_info
