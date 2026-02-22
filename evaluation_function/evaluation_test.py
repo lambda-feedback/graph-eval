@@ -70,7 +70,7 @@ class TestEvaluationFunction(unittest.TestCase):
         """Test boolean answer provides detailed feedback."""
         response = Response(is_bipartite=False)
         answer = Answer(is_bipartite=True)
-        params = EvaluationParams(feedback_level="standard", tolerance=1e-9)
+        params = EvaluationParams(evaluation_type="bipartite", feedback_level="standard", tolerance=1e-9)
         
         result = evaluation_function(response, answer, params).to_dict()
         
@@ -89,7 +89,7 @@ class TestEvaluationFunction(unittest.TestCase):
         
         response = Response(path=["A", "B", "C"])  # B→C doesn't exist
         answer = Answer(graph=graph)
-        params = EvaluationParams(feedback_level="standard", tolerance=1e-9)
+        params = EvaluationParams(evaluation_type="shortest_path", feedback_level="standard", tolerance=1e-9)
         
         result = evaluation_function(response, answer, params).to_dict()
         
@@ -106,7 +106,7 @@ class TestEvaluationFunction(unittest.TestCase):
         
         response = Response(coloring={"A": 0, "B": 0, "C": 1})  # A and B adjacent with same color
         answer = Answer(graph=graph)
-        params = EvaluationParams(feedback_level="standard", tolerance=1e-9)
+        params = EvaluationParams(evaluation_type="graph_coloring", feedback_level="standard", tolerance=1e-9)
         
         result = evaluation_function(response, answer, params).to_dict()
         
@@ -119,7 +119,7 @@ class TestEvaluationFunction(unittest.TestCase):
         """Test minimal feedback level provides minimal output."""
         response = Response(is_connected=False)
         answer = Answer(is_connected=True)
-        params = EvaluationParams(feedback_level="minimal", tolerance=1e-9)
+        params = EvaluationParams(evaluation_type="connectivity", feedback_level="minimal", tolerance=1e-9)
         
         result = evaluation_function(response, answer, params).to_dict()
         
@@ -136,7 +136,7 @@ class TestEvaluationFunction(unittest.TestCase):
         
         response = Response(path=["A", "B"])
         answer = Answer(graph=graph)
-        params = EvaluationParams(feedback_level="detailed", tolerance=1e-9)
+        params = EvaluationParams(evaluation_type="shortest_path", feedback_level="detailed", tolerance=1e-9)
         
         result = evaluation_function(response, answer, params).to_dict()
         
@@ -161,7 +161,7 @@ class TestEvaluationFunction(unittest.TestCase):
             Edge(source="A", target="C")  # Creates cycle
         ])
         answer = Answer(graph=graph)
-        params = EvaluationParams(feedback_level="standard", tolerance=1e-9)
+        params = EvaluationParams(evaluation_type="spanning_tree", feedback_level="standard", tolerance=1e-9)
         
         result = evaluation_function(response, answer, params).to_dict()
         
@@ -172,7 +172,7 @@ class TestEvaluationFunction(unittest.TestCase):
         """Test numeric answer provides specific values in feedback."""
         response = Response(chromatic_number=4)
         answer = Answer(chromatic_number=3)
-        params = EvaluationParams(feedback_level="standard", tolerance=1e-9)
+        params = EvaluationParams(evaluation_type="chromatic_number", feedback_level="standard", tolerance=1e-9)
         
         result = evaluation_function(response, answer, params).to_dict()
         

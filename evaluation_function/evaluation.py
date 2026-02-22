@@ -294,9 +294,9 @@ def check_tree_edges(edges: List[Edge], graph: Graph) -> Tuple[bool, List[str]]:
     errors = []
     n = len(graph.nodes)
     
+    # Check edge count but continue checking for other issues
     if len(edges) != n - 1:
         errors.append(f"Tree must have {n-1} edges (you provided {len(edges)})")
-        return False, errors
     
     # Check all edges exist in graph
     graph_edges = {(e.source, e.target) for e in graph.edges}
@@ -325,15 +325,14 @@ def check_tree_edges(edges: List[Edge], graph: Graph) -> Tuple[bool, List[str]]:
     for edge in edges:
         if not union(edge.source, edge.target):
             errors.append(f"Edges form a cycle (edge {edge.source}—{edge.target} creates cycle)")
-            return False, errors
     
     # Check if all nodes are connected
     roots = {find(node.id) for node in graph.nodes}
     if len(roots) > 1:
         errors.append(f"Edges do not form a connected tree ({len(roots)} components)")
-        return False, errors
     
-    return True, errors
+    # Return True only if no errors
+    return len(errors) == 0, errors
 
 
 # =============================================================================
@@ -585,7 +584,7 @@ def evaluation_function(
         elif isinstance(response, Response):
             response_obj = response
         else:
-            return Result(is_correct=False, feedback="Invalid response format")
+            return Result(is_correct=False, feedback_items=[('error', 'Invalid response format')])
         
         if isinstance(answer, dict):
             # Check if it's frontend pipe-delimited format
@@ -597,7 +596,7 @@ def evaluation_function(
         elif isinstance(answer, Answer):
             answer_obj = answer
         else:
-            return Result(is_correct=False, feedback="Invalid answer format")
+            return Result(is_correct=False, feedback_items=[('error', 'Invalid answer format')])
         
         if isinstance(params, dict):
             eval_params = EvaluationParams(**params)
@@ -611,69 +610,77 @@ def evaluation_function(
                 tolerance=1e-9
             )
         
+        # Helper to convert tuple to Result
+        def make_result(eval_result):
+            is_correct, feedback = eval_result
+            # Result expects feedback_items as a list of tuples
+            # We pass feedback as a single tuple
+            feedback_items = [('feedback', feedback)] if feedback else []
+            return Result(is_correct=is_correct, feedback_items=feedback_items)
+        
         # Route to appropriate evaluation based on evaluation type or available fields
         evaluation_type = getattr(eval_params, 'evaluation_type', None)
         
         # Graph matching
         if evaluation_type == "graph_match" or (response_obj.graph and answer_obj.graph and not evaluation_type):
-            return Result(*evaluate_graph_match(response_obj, answer_obj, eval_params))
+            return make_result(evaluate_graph_match(response_obj, answer_obj, eval_params))
         
         # Boolean answers
         if response_obj.is_connected is not None or answer_obj.is_connected is not None:
-            return Result(*evaluate_boolean_answer(response_obj, answer_obj, eval_params,
+            return make_result(evaluate_boolean_answer(response_obj, answer_obj, eval_params,
                                                    "is_connected", "Connectivity"))
         if response_obj.is_bipartite is not None or answer_obj.is_bipartite is not None:
-            return Result(*evaluate_boolean_answer(response_obj, answer_obj, eval_params,
+            return make_result(evaluate_boolean_answer(response_obj, answer_obj, eval_params,
                                                    "is_bipartite", "Bipartite"))
         if response_obj.is_tree is not None or answer_obj.is_tree is not None:
-            return Result(*evaluate_boolean_answer(response_obj, answer_obj, eval_params,
+            return make_result(evaluate_boolean_answer(response_obj, answer_obj, eval_params,
                                                    "is_tree", "Tree"))
         if response_obj.has_cycle is not None or answer_obj.has_cycle is not None:
-            return Result(*evaluate_boolean_answer(response_obj, answer_obj, eval_params,
+            return make_result(evaluate_boolean_answer(response_obj, answer_obj, eval_params,
                                                    "has_cycle", "Cycle Detection"))
         
         # Path answers
         if response_obj.path is not None or answer_obj.path is not None:
-            return Result(*evaluate_path_answer(response_obj, answer_obj, eval_params, "path"))
+            return make_result(evaluate_path_answer(response_obj, answer_obj, eval_params, "path"))
         if response_obj.topological_order is not None or answer_obj.topological_order is not None:
-            return Result(*evaluate_path_answer(response_obj, answer_obj, eval_params, "topological_order"))
+            return make_result(evaluate_path_answer(response_obj, answer_obj, eval_params, "topological_order"))
         
         # Numeric answers
         if response_obj.distance is not None or answer_obj.distance is not None:
-            return Result(*evaluate_numeric_answer(response_obj, answer_obj, eval_params,
+            return make_result(evaluate_numeric_answer(response_obj, answer_obj, eval_params,
                                                    "distance", "Distance"))
         if response_obj.chromatic_number is not None or answer_obj.chromatic_number is not None:
-            return Result(*evaluate_numeric_answer(response_obj, answer_obj, eval_params,
+            return make_result(evaluate_numeric_answer(response_obj, answer_obj, eval_params,
                                                    "chromatic_number", "Chromatic Number"))
         if response_obj.flow_value is not None or answer_obj.flow_value is not None:
-            return Result(*evaluate_numeric_answer(response_obj, answer_obj, eval_params,
+            return make_result(evaluate_numeric_answer(response_obj, answer_obj, eval_params,
                                                    "flow_value", "Maximum Flow"))
         
         # Coloring
         if response_obj.coloring is not None:
-            return Result(*evaluate_coloring_answer(response_obj, answer_obj, eval_params))
+            return make_result(evaluate_coloring_answer(response_obj, answer_obj, eval_params))
         
         # Set answers
         if response_obj.vertex_cover is not None or answer_obj.vertex_cover is not None:
-            return Result(*evaluate_set_answer(response_obj, answer_obj, eval_params,
+            return make_result(evaluate_set_answer(response_obj, answer_obj, eval_params,
                                               "vertex_cover", "Vertex Cover"))
         if response_obj.independent_set is not None or answer_obj.independent_set is not None:
-            return Result(*evaluate_set_answer(response_obj, answer_obj, eval_params,
+            return make_result(evaluate_set_answer(response_obj, answer_obj, eval_params,
                                               "independent_set", "Independent Set"))
         if response_obj.clique is not None or answer_obj.clique is not None:
-            return Result(*evaluate_set_answer(response_obj, answer_obj, eval_params,
+            return make_result(evaluate_set_answer(response_obj, answer_obj, eval_params,
                                               "clique", "Clique"))
         
         # Tree answers
         if response_obj.spanning_tree is not None or answer_obj.spanning_tree is not None:
-            return Result(*evaluate_tree_answer(response_obj, answer_obj, eval_params, "spanning_tree"))
+            return make_result(evaluate_tree_answer(response_obj, answer_obj, eval_params, "spanning_tree"))
         if response_obj.mst is not None or answer_obj.mst is not None:
-            return Result(*evaluate_tree_answer(response_obj, answer_obj, eval_params, "mst"))
+            return make_result(evaluate_tree_answer(response_obj, answer_obj, eval_params, "mst"))
         
         # Default: simple equality check
         is_correct = response == answer
         feedback = "Correct" if is_correct else "Incorrect"
-        return Result(is_correct=is_correct, feedback=feedback)
+        return Result(is_correct=is_correct, feedback_items=[('feedback', feedback)])
         
     except Exception as e:
-        return Result(is_correct=False, feedback=f"Evaluation error: {str(e)}")
+        return Result(is_correct=False, feedback_items=[('error', f'Evaluation error: {str(e)}')])

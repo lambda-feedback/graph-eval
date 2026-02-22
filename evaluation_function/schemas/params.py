@@ -533,6 +533,10 @@ class EvaluationParams(BaseModel):
         30.0,
         description="Global timeout for computation in seconds"
     )
+    tolerance: float = Field(
+        1e-9,
+        description="Numerical tolerance for comparisons"
+    )
 
     class Config:
         extra = "allow"

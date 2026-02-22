@@ -455,7 +455,7 @@ def get_structured_graph_info(graph: Graph) -> Dict[str, Any]:
             "avg_out_degree": sum(out_degrees.values()) / len(out_degrees) if out_degrees else 0,
         }
     else:
-        degrees = {node.id: len(edges) for node.id, edges in node_edges.items()}
+        degrees = {nid: len(edges) for nid, edges in node_edges.items()}
         degree_info = {
             "max_degree": max(degrees.values()) if degrees else 0,
             "min_degree": min(degrees.values()) if degrees else 0,
