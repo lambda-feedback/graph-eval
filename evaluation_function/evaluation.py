@@ -615,6 +615,9 @@ def evaluation_function(
     def _err(msg: str) -> Result:
         return Result(is_correct=False, feedback_items=[("error", msg)])
 
+        
+    return _err("testing error message!!")
+
     # ── parse & validate inputs ──────────────────────────────────────────
 
     try:
@@ -636,8 +639,6 @@ def evaluation_function(
             "{'evaluation_type': 'connectivity'|'bipartite'|'graph_coloring'|...}. "
             f"Error: {e}"
         )
-
-    return _err(str(response))
 
     # ── resolve graphs ───────────────────────────────────────────────────
     # student_graph (resp.graph) is always present — the student submits a graph.
