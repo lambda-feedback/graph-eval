@@ -615,9 +615,6 @@ def evaluation_function(
     def _err(msg: str) -> Result:
         return Result(is_correct=False, feedback_items=[("error", msg)])
 
-        
-    return _err("testing error message!!")
-
     # ── parse & validate inputs ──────────────────────────────────────────
 
     try:
