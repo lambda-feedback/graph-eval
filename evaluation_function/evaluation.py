@@ -637,6 +637,8 @@ def evaluation_function(
             f"Error: {e}"
         )
 
+    return _err(str(response))
+
     # ── resolve graphs ───────────────────────────────────────────────────
     # student_graph (resp.graph) is always present — the student submits a graph.
     # ans.graph is only present for isomorphism / subgraph checks where the
