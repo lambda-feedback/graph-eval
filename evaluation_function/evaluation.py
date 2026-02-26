@@ -652,6 +652,8 @@ def evaluation_function(
                 "Invalid params schema. Expected e.g. "
                 "{'evaluation_type': 'connectivity'|'bipartite'|'graph_coloring'|...}. "
                 f"Error: {e}"
+                f"{response_dict}"
+                f"{answer_dict}"
             )
 
     # ── resolve graphs ───────────────────────────────────────────────────
