@@ -633,7 +633,7 @@ def evaluation_function(
     except ValidationError as e:
         if ans.graph is None:
             return _err(
-                "Invalid params schema. Expected e.g. "
+                "Testing: Invalid params schema. Expected e.g. "
                 "{'evaluation_type': 'connectivity'|'bipartite'|'graph_coloring'|...}. "
                 f"Error: {e}"
             )
