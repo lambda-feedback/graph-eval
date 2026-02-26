@@ -617,13 +617,29 @@ def evaluation_function(
 
     # ── parse & validate inputs ──────────────────────────────────────────
 
+    # Parse response (student's graph)
+    response_dict = _to_dictish(response) or {}
+    
+    # Check if response contains frontend pipe-delimited format and convert
+    if is_frontend_format(response_dict):
+        parsed_graph = parse_frontend_graph(response_dict)
+        response_dict = {"graph": parsed_graph}
+    
     try:
-        resp = Response.model_validate(_to_dictish(response) or {})
+        resp = Response.model_validate(response_dict)
     except ValidationError as e:
         return _err(f"Invalid response schema: {e}")
 
+    # Parse answer (teacher's reference)
+    answer_dict = _to_dictish(answer) or {}
+    
+    # Check if answer contains frontend pipe-delimited format and convert
+    if is_frontend_format(answer_dict):
+        parsed_graph = parse_frontend_graph(answer_dict)
+        answer_dict = {"graph": parsed_graph}
+    
     try:
-        ans = Answer.model_validate(_to_dictish(answer) or {})
+        ans = Answer.model_validate(answer_dict)
     except ValidationError as e:
         return _err(f"Invalid answer schema: {e}")
 
@@ -633,7 +649,7 @@ def evaluation_function(
     except ValidationError as e:
         if ans.graph is None:
             return _err(
-                "Testing: Invalid params schema. Expected e.g. "
+                "Invalid params schema. Expected e.g. "
                 "{'evaluation_type': 'connectivity'|'bipartite'|'graph_coloring'|...}. "
                 f"Error: {e}"
             )

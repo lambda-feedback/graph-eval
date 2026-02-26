@@ -11,6 +11,8 @@ from pydantic import BaseModel, Field
 class Node(BaseModel):
     id: str = Field(..., description="Unique identifier for the node")
     label: Optional[str] = Field(None, description="Display label")
+    x: Optional[float] = Field(None, description="X coordinate for visual display (not used in evaluation)")
+    y: Optional[float] = Field(None, description="Y coordinate for visual display (not used in evaluation)")
 
     class Config:
         extra = "allow"
@@ -31,6 +33,8 @@ class Graph(BaseModel):
     nodes: list[Node] = Field(..., description="List of nodes in the graph")
     edges: list[Edge] = Field(default_factory=list, description="List of edges")
     directed: bool = Field(False, description="Whether the graph is directed")
+    weighted: bool = Field(False, description="Whether the graph is weighted (metadata only, not used in evaluation)")
+    multigraph: bool = Field(False, description="Whether the graph allows multiple edges (metadata only, not used in evaluation)")
 
     class Config:
         extra = "allow"
