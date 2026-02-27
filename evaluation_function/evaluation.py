@@ -647,17 +647,11 @@ def evaluation_function(
     try:
         p = EvaluationParams.model_validate(raw_params)
     except ValidationError as e:
-        if ans.graph is None:
-            return _err(
-                "Invalid params schema. Expected e.g. "
-                "{'evaluation_type': 'connectivity'|'bipartite'|'graph_coloring'|...}. "
-                f"Error: {e}"
-                f"\n response_dict: {response_dict}"
-                f"\n answer_dict: {answer_dict}"
-                f"\n response: {response}"
-                f"\n answer: {answer}"
-                f"\n params: {params}"
-            )
+        return _err(
+            "Invalid params schema. Expected e.g. "
+            "{'evaluation_type': 'connectivity'|'bipartite'|'graph_coloring'|...}. "
+            f"Error: {e}"
+        )
 
     # ── resolve graphs ───────────────────────────────────────────────────
     # student_graph (resp.graph) is always present — the student submits a graph.
@@ -911,11 +905,7 @@ def evaluation_function(
         "clique_number": _eval_clique_number,
     }
 
-    # If answer graph is provided, run isomorphism check regardless of params
-    if ans.graph is not None:
-        return _eval_isomorphism()
-    
-    # Otherwise use the evaluation type from params
+    # Always use the evaluation type from params
     handler = dispatch.get(p.evaluation_type)
     if handler is None:
         return _err(f"Unsupported evaluation_type: '{p.evaluation_type}'.")
