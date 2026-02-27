@@ -826,6 +826,8 @@ def evaluation_function(
         return _grade_bool("Forest", ans.is_forest, is_forest)
 
     def _eval_dag() -> Result:
+        if not student_graph.directed:
+            return _err("DAG check requires a directed graph.")
         return _grade_bool("DAG", ans.is_dag, is_dag)
 
     def _eval_eulerian() -> Result:
