@@ -32,9 +32,12 @@ class Edge(BaseModel):
 class Graph(BaseModel):
     nodes: list[Node] = Field(..., description="List of nodes in the graph")
     edges: list[Edge] = Field(default_factory=list, description="List of edges")
-    directed: bool = Field(False, description="Whether the graph is directed")
-    weighted: bool = Field(False, description="Whether the graph is weighted (metadata only, not used in evaluation)")
-    multigraph: bool = Field(False, description="Whether the graph allows multiple edges (metadata only, not used in evaluation)")
+    # These flags are NOT part of the student/teacher payload schema.
+    # They are set exclusively from EvaluationParams by _apply_params_to_graph()
+    # at evaluation time so that algorithm functions can read them.
+    directed: bool = Field(False, description="Set from EvaluationParams.directed at evaluation time — do not include in response/answer payloads")
+    weighted: bool = Field(False, description="Set from EvaluationParams.weighted at evaluation time — do not include in response/answer payloads")
+    multigraph: bool = Field(False, description="Set from EvaluationParams.multigraph at evaluation time — do not include in response/answer payloads")
 
     class Config:
         extra = "allow"

@@ -75,6 +75,11 @@ class TraversalParams(BaseModel):
 class EvaluationParams(BaseModel):
     evaluation_type: EvaluationType = Field(..., description="The type of evaluation to perform")
 
+    # Graph structure flags — sourced from params, not from the response/answer graph payload
+    directed: bool = Field(False, description="Whether the graph is directed")
+    weighted: bool = Field(False, description="Whether the graph is weighted")
+    multigraph: bool = Field(False, description="Whether the graph allows multiple edges")
+
     connectivity: Optional[ConnectivityParams] = None
     bipartite: Optional[BipartiteParams] = None
     graph_coloring: Optional[GraphColoringParams] = None

@@ -18,12 +18,12 @@ from evaluation_function.evaluation import evaluation_function
 
 # ── helpers ──────────────────────────────────────────────────────────────
 
-def _graph(nodes, edges, *, directed=False):
+def _graph(nodes, edges):
+    """Build a plain graph dict with only nodes and edges — no graph-level flags."""
     return {
         "nodes": [{"id": n} for n in nodes],
         "edges": [{"source": s, "target": t, **({"weight": w} if (w := e.get("weight")) is not None else {})}
                   for e in edges for s, t in [(e["source"], e["target"])]],
-        "directed": directed,
     }
 
 
@@ -53,15 +53,15 @@ class TestConnectivity:
         assert r["is_correct"] is True
 
     def test_strongly_connected(self):
-        g = _graph(["A", "B"], [{"source": "A", "target": "B"}, {"source": "B", "target": "A"}], directed=True)
+        g = _graph(["A", "B"], [{"source": "A", "target": "B"}, {"source": "B", "target": "A"}])
         r = _eval({"graph": g}, {"is_connected": True},
-                  {"evaluation_type": "connectivity", "connectivity": {"check_type": "strongly_connected"}})
+                  {"evaluation_type": "connectivity", "directed": True, "connectivity": {"check_type": "strongly_connected"}})
         assert r["is_correct"] is True
 
     def test_weakly_connected(self):
-        g = _graph(["A", "B"], [{"source": "A", "target": "B"}], directed=True)
+        g = _graph(["A", "B"], [{"source": "A", "target": "B"}])
         r = _eval({"graph": g}, {"is_connected": True},
-                  {"evaluation_type": "connectivity", "connectivity": {"check_type": "weakly_connected"}})
+                  {"evaluation_type": "connectivity", "directed": True, "connectivity": {"check_type": "weakly_connected"}})
         assert r["is_correct"] is True
 
     def test_missing_expected_value(self):
@@ -144,17 +144,17 @@ class TestCycleDetection:
     def test_directed_cycle(self):
         g = _graph(["A", "B", "C"], [
             {"source": "A", "target": "B"}, {"source": "B", "target": "C"}, {"source": "C", "target": "A"}
-        ], directed=True)
+        ])
         r = _eval({"graph": g}, {"has_cycle": True},
-                  {"evaluation_type": "cycle_detection"})
+                  {"evaluation_type": "cycle_detection", "directed": True})
         assert r["is_correct"] is True
 
     def test_directed_dag(self):
         g = _graph(["A", "B", "C"], [
             {"source": "A", "target": "B"}, {"source": "A", "target": "C"}
-        ], directed=True)
+        ])
         r = _eval({"graph": g}, {"has_cycle": False},
-                  {"evaluation_type": "cycle_detection"})
+                  {"evaluation_type": "cycle_detection", "directed": True})
         assert r["is_correct"] is True
 
 
@@ -341,15 +341,15 @@ class TestDAG:
     def test_dag_correct(self):
         g = _graph(["A", "B", "C"], [
             {"source": "A", "target": "B"}, {"source": "A", "target": "C"}
-        ], directed=True)
-        r = _eval({"graph": g}, {"is_dag": True}, {"evaluation_type": "dag"})
+        ])
+        r = _eval({"graph": g}, {"is_dag": True}, {"evaluation_type": "dag", "directed": True})
         assert r["is_correct"] is True
 
     def test_not_dag_has_cycle(self):
         g = _graph(["A", "B"], [
             {"source": "A", "target": "B"}, {"source": "B", "target": "A"}
-        ], directed=True)
-        r = _eval({"graph": g}, {"is_dag": False}, {"evaluation_type": "dag"})
+        ])
+        r = _eval({"graph": g}, {"is_dag": False}, {"evaluation_type": "dag", "directed": True})
         assert r["is_correct"] is True
 
     def test_undirected_never_dag(self):

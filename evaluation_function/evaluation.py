@@ -37,29 +37,21 @@ from .schemas.evaluation_types import EvaluationType
 
 def parse_frontend_graph(data: dict) -> Graph:
     """
-    Parse pipe-delimited frontend graph format into Graph object.
-    
+    Parse pipe-delimited frontend graph format into a Graph object (nodes + edges only).
+
     Frontend format:
     - nodes: ["id|label|x|y", ...]
     - edges: ["source|target|weight|label", ...]
-    - directed: boolean
-    - weighted: boolean
-    - multigraph: boolean
-    
-    Example:
-        {
-          "nodes": ["city1|New York|120|180"],
-          "edges": ["city1|city2|215|I-95 North"],
-          "directed": true,
-          "weighted": true,
-          "multigraph": false
-        }
-    
+
+    Note: directed/weighted/multigraph are NOT read from the data dict here.
+    They come exclusively from EvaluationParams and are applied later via
+    _apply_params_to_graph().
+
     Args:
         data: Dictionary with pipe-delimited node and edge strings
-        
+
     Returns:
-        Graph object with parsed nodes and edges
+        Graph object with only nodes and edges populated.
     """
     nodes = []
     edges = []
@@ -94,13 +86,9 @@ def parse_frontend_graph(data: dict) -> Graph:
             )
             edges.append(edge)
     
-    return Graph(
-        nodes=nodes,
-        edges=edges,
-        directed=data.get("directed", False),
-        weighted=data.get("weighted", False),
-        multigraph=data.get("multigraph", False)
-    )
+    # directed/weighted/multigraph are intentionally NOT read from the data dict.
+    # They come exclusively from EvaluationParams, applied via _apply_params_to_graph().
+    return Graph(nodes=nodes, edges=edges)
 
 
 def is_frontend_format(data: dict) -> bool:
@@ -132,6 +120,25 @@ def is_frontend_format(data: dict) -> bool:
             return True
     
     return False
+
+
+# =============================================================================
+# GRAPH HELPERS
+# =============================================================================
+
+def _apply_params_to_graph(graph: Graph, params: EvaluationParams) -> Graph:
+    """
+    Return a new Graph with directed/weighted/multigraph copied from EvaluationParams.
+    This is the single place where these flags are stamped onto a graph object —
+    they must never come from the student or teacher payload.
+    """
+    return Graph(
+        nodes=graph.nodes,
+        edges=graph.edges,
+        directed=params.directed,
+        weighted=params.weighted,
+        multigraph=params.multigraph,
+    )
 
 
 # =============================================================================
@@ -615,33 +622,7 @@ def evaluation_function(
     def _err(msg: str) -> Result:
         return Result(is_correct=False, feedback_items=[("error", msg)])
 
-    # ── parse & validate inputs ──────────────────────────────────────────
-
-    # Parse response (student's graph)
-    response_dict = _to_dictish(response) or {}
-    
-    # Check if response contains frontend pipe-delimited format and convert
-    if is_frontend_format(response_dict):
-        parsed_graph = parse_frontend_graph(response_dict)
-        response_dict = {"graph": parsed_graph}
-    
-    try:
-        resp = Response.model_validate(response_dict)
-    except ValidationError as e:
-        return _err(f"Invalid response schema: {e}")
-
-    # Parse answer (teacher's reference)
-    answer_dict = _to_dictish(answer) or {}
-    
-    # Check if answer contains frontend pipe-delimited format and convert
-    if is_frontend_format(answer_dict):
-        parsed_graph = parse_frontend_graph(answer_dict)
-        answer_dict = {"graph": parsed_graph}
-    
-    try:
-        ans = Answer.model_validate(answer_dict)
-    except ValidationError as e:
-        return _err(f"Invalid answer schema: {e}")
+    # ── parse params FIRST — directed/weighted/multigraph live here ─────
 
     raw_params = _to_dictish(params) or {}
     try:
@@ -651,22 +632,46 @@ def evaluation_function(
             "Invalid params schema. Expected e.g. "
             "{'evaluation_type': 'connectivity'|'bipartite'|'graph_coloring'|...}. "
             f"Error: {e}"
-            f"response: {response}"
-            f"response_dict: {response_dict}"
-            f"answer: {answer}"
-            f"answer_dict: {answer_dict}"
-            f"params: {params}"
-            f"raw_params: {raw_params}"
         )
 
-    # ── resolve graphs ───────────────────────────────────────────────────
-    # student_graph (resp.graph) is always present — the student submits a graph.
-    # ans.graph is only present for isomorphism / subgraph checks where the
-    # teacher provides a reference graph.  For all other eval types the teacher
-    # sets the expected property value directly in the answer (e.g. ans.is_connected).
+    # ── parse response (student's graph) ─────────────────────────────────
+
+    response_dict = _to_dictish(response) or {}
+
+    if is_frontend_format(response_dict):
+        parsed_graph = parse_frontend_graph(response_dict)
+        response_dict = {"graph": parsed_graph.model_dump()}
+
+    try:
+        resp = Response.model_validate(response_dict)
+    except ValidationError as e:
+        return _err(f"Invalid response schema: {e}")
+
+    # ── parse answer (teacher's reference) ───────────────────────────────
+
+    answer_dict = _to_dictish(answer) or {}
+
+    if is_frontend_format(answer_dict):
+        parsed_graph = parse_frontend_graph(answer_dict)
+        answer_dict = {"graph": parsed_graph.model_dump()}
+
+    try:
+        ans = Answer.model_validate(answer_dict)
+    except ValidationError as e:
+        return _err(f"Invalid answer schema: {e}")
+
+    # ── resolve graphs and stamp params flags ─────────────────────────────
+    # directed/weighted/multigraph come exclusively from params — never from
+    # the student or teacher payload.
+
     student_graph: Graph = resp.graph
     if student_graph is None:
         return _err("response.graph is required — the student must submit a graph.")
+
+    student_graph = _apply_params_to_graph(student_graph, p)
+
+    if ans.graph is not None:
+        ans = ans.model_copy(update={"graph": _apply_params_to_graph(ans.graph, p)})
 
     # ── helper: grade a simple boolean property ──────────────────────────
     def _grade_bool(
