@@ -2,10 +2,11 @@
 Request/Response Schemas
 """
 
-from typing import Optional
+from typing import Optional, Literal
 from pydantic import BaseModel, Field
 
 from .graph import Graph
+from .evaluation_types import EvaluationType
 
 
 class Response(BaseModel):
@@ -34,6 +35,24 @@ class Response(BaseModel):
 
 
 class Answer(BaseModel):
+    # Evaluation configuration (moved from params)
+    evaluation_type: Optional[EvaluationType] = Field(None, description="The type of evaluation to perform")
+    directed: Optional[bool] = Field(None, description="Whether the graph is directed")
+    weighted: Optional[bool] = Field(None, description="Whether the graph is weighted")
+    multigraph: Optional[bool] = Field(None, description="Whether the graph allows multiple edges")
+    
+    # Optional evaluation sub-params
+    connectivity: Optional[dict] = Field(None, description="Connectivity evaluation parameters")
+    bipartite: Optional[dict] = Field(None, description="Bipartite evaluation parameters")
+    graph_coloring: Optional[dict] = Field(None, description="Graph coloring evaluation parameters")
+    cycle_detection: Optional[dict] = Field(None, description="Cycle detection parameters")
+    isomorphism: Optional[dict] = Field(None, description="Isomorphism evaluation parameters")
+    
+    # Global evaluation params
+    feedback_level: Optional[Literal["minimal", "standard", "detailed"]] = Field(None, description="Level of detail in feedback")
+    tolerance: Optional[float] = Field(None, description="Numerical tolerance for comparisons")
+    
+    # Expected graph and answers
     graph: Optional[Graph] = Field(None, description="The expected/correct graph")
     is_connected: Optional[bool] = None
     is_bipartite: Optional[bool] = None

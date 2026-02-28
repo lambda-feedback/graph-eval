@@ -622,20 +622,54 @@ def evaluation_function(
     def _err(msg: str) -> Result:
         return Result(is_correct=False, feedback_items=[("error", msg)])
 
-    # ── parse params FIRST — directed/weighted/multigraph live here ─────
+    # ── parse answer FIRST — evaluation_type and graph flags now live here ─────
 
-    raw_params = _to_dictish(params) or {}
+    answer_dict = _to_dictish(answer) or {}
+
+    if is_frontend_format(answer_dict):
+        parsed_graph = parse_frontend_graph(answer_dict)
+        answer_dict = {"graph": parsed_graph.model_dump()}
+
     try:
-        p = EvaluationParams.model_validate(raw_params)
+        ans = Answer.model_validate(answer_dict)
     except ValidationError as e:
-        return _err(
-            "Invalid params schema. Expected e.g. "
-            "{'evaluation_type': 'connectivity'|'bipartite'|'graph_coloring'|...}. "
-            f"Error: {e}"
-            f"response: {response}"
-            f"answer: {answer}"
-            f"params: {params}"
-        )
+        return _err(f"Invalid answer schema: {e}")
+
+    # ── extract evaluation params from answer ─────────────────────────────
+    # All evaluation configuration now comes from the answer object
+    
+    eval_params_dict = {}
+    
+    # Get evaluation_type from answer (required)
+    if ans.evaluation_type:
+        eval_params_dict['evaluation_type'] = ans.evaluation_type
+    elif 'evaluation_type' in answer_dict:
+        eval_params_dict['evaluation_type'] = answer_dict['evaluation_type']
+    else:
+        return _err("evaluation_type is required in answer object")
+    
+    # Get graph structure flags from answer (with defaults)
+    eval_params_dict['directed'] = ans.directed if ans.directed is not None else False
+    eval_params_dict['weighted'] = ans.weighted if ans.weighted is not None else False
+    eval_params_dict['multigraph'] = ans.multigraph if ans.multigraph is not None else False
+    
+    # Get optional evaluation sub-params from answer
+    for key in ['connectivity', 'bipartite', 'graph_coloring', 'cycle_detection', 
+                'isomorphism', 'feedback_level', 'tolerance']:
+        value = getattr(ans, key, None)
+        if value is not None:
+            eval_params_dict[key] = value
+    
+    # Set defaults for feedback_level and tolerance if not provided
+    if 'feedback_level' not in eval_params_dict:
+        eval_params_dict['feedback_level'] = 'standard'
+    if 'tolerance' not in eval_params_dict:
+        eval_params_dict['tolerance'] = 1e-9
+    
+    try:
+        p = EvaluationParams.model_validate(eval_params_dict)
+    except ValidationError as e:
+        return _err(f"Invalid evaluation parameters in answer: {e}")
 
     # ── parse response (student's graph) ─────────────────────────────────
 
@@ -650,22 +684,9 @@ def evaluation_function(
     except ValidationError as e:
         return _err(f"Invalid response schema: {e}")
 
-    # ── parse answer (teacher's reference) ───────────────────────────────
-
-    answer_dict = _to_dictish(answer) or {}
-
-    if is_frontend_format(answer_dict):
-        parsed_graph = parse_frontend_graph(answer_dict)
-        answer_dict = {"graph": parsed_graph.model_dump()}
-
-    try:
-        ans = Answer.model_validate(answer_dict)
-    except ValidationError as e:
-        return _err(f"Invalid answer schema: {e}")
-
     # ── resolve graphs and stamp params flags ─────────────────────────────
-    # directed/weighted/multigraph come exclusively from params — never from
-    # the student or teacher payload.
+    # directed/weighted/multigraph come exclusively from answer object — never from
+    # the student response payload.
 
     student_graph: Graph = resp.graph
     if student_graph is None:

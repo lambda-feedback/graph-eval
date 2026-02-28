@@ -36,43 +36,43 @@ def _eval(response, answer, params):
 class TestConnectivity:
     def test_connected_correct(self):
         g = _graph(["A", "B"], [{"source": "A", "target": "B"}])
-        r = _eval({"graph": g}, {"is_connected": True},
-                  {"evaluation_type": "connectivity"})
+        r = _eval({"graph": g}, {"is_connected": True, "evaluation_type": "connectivity"},
+                  {})
         assert r["is_correct"] is True
 
     def test_connected_wrong(self):
         g = _graph(["A", "B", "C"], [{"source": "A", "target": "B"}])
-        r = _eval({"graph": g}, {"is_connected": True},
-                  {"evaluation_type": "connectivity"})
+        r = _eval({"graph": g}, {"is_connected": True, "evaluation_type": "connectivity"},
+                  {})
         assert r["is_correct"] is False
 
     def test_disconnected(self):
         g = _graph(["A", "B", "C"], [{"source": "A", "target": "B"}])
-        r = _eval({"graph": g}, {"is_connected": False},
-                  {"evaluation_type": "connectivity"})
+        r = _eval({"graph": g}, {"is_connected": False, "evaluation_type": "connectivity"},
+                  {})
         assert r["is_correct"] is True
 
     def test_strongly_connected(self):
         g = _graph(["A", "B"], [{"source": "A", "target": "B"}, {"source": "B", "target": "A"}])
-        r = _eval({"graph": g}, {"is_connected": True},
-                  {"evaluation_type": "connectivity", "directed": True, "connectivity": {"check_type": "strongly_connected"}})
+        r = _eval({"graph": g}, {"is_connected": True, "evaluation_type": "connectivity", "directed": True, "connectivity": {"check_type": "strongly_connected"}},
+                  {})
         assert r["is_correct"] is True
 
     def test_weakly_connected(self):
         g = _graph(["A", "B"], [{"source": "A", "target": "B"}])
-        r = _eval({"graph": g}, {"is_connected": True},
-                  {"evaluation_type": "connectivity", "directed": True, "connectivity": {"check_type": "weakly_connected"}})
+        r = _eval({"graph": g}, {"is_connected": True, "evaluation_type": "connectivity", "directed": True, "connectivity": {"check_type": "weakly_connected"}},
+                  {})
         assert r["is_correct"] is True
 
     def test_missing_expected_value(self):
         """Teacher must set answer.is_connected."""
         g = _graph(["A", "B"], [{"source": "A", "target": "B"}])
-        r = _eval({"graph": g}, {}, {"evaluation_type": "connectivity"})
+        r = _eval({"graph": g}, {"evaluation_type": "connectivity"}, {})
         assert r["is_correct"] is False
 
     def test_missing_student_graph(self):
         """Student must submit a graph."""
-        r = _eval({}, {"is_connected": True}, {"evaluation_type": "connectivity"})
+        r = _eval({}, {"is_connected": True, "evaluation_type": "connectivity"}, {})
         assert r["is_correct"] is False
 
 
@@ -81,40 +81,40 @@ class TestConnectivity:
 class TestBipartite:
     def test_bipartite_correct(self):
         g = _graph(["A", "B", "X"], [{"source": "A", "target": "X"}, {"source": "B", "target": "X"}])
-        r = _eval({"graph": g}, {"is_bipartite": True},
-                  {"evaluation_type": "bipartite"})
+        r = _eval({"graph": g}, {"is_bipartite": True, "evaluation_type": "bipartite"},
+                  {})
         assert r["is_correct"] is True
 
     def test_not_bipartite(self):
         g = _graph(["A", "B", "C"], [
             {"source": "A", "target": "B"}, {"source": "B", "target": "C"}, {"source": "C", "target": "A"}
         ])
-        r = _eval({"graph": g}, {"is_bipartite": False},
-                  {"evaluation_type": "bipartite"})
+        r = _eval({"graph": g}, {"is_bipartite": False, "evaluation_type": "bipartite"},
+                  {})
         assert r["is_correct"] is True
 
     def test_wrong_bipartite(self):
         g = _graph(["A", "B", "C"], [
             {"source": "A", "target": "B"}, {"source": "B", "target": "C"}, {"source": "C", "target": "A"}
         ])
-        r = _eval({"graph": g}, {"is_bipartite": True},
-                  {"evaluation_type": "bipartite"})
+        r = _eval({"graph": g}, {"is_bipartite": True, "evaluation_type": "bipartite"},
+                  {})
         assert r["is_correct"] is False
 
     def test_with_odd_cycle_feedback(self):
         g = _graph(["A", "B", "C"], [
             {"source": "A", "target": "B"}, {"source": "B", "target": "C"}, {"source": "C", "target": "A"}
         ])
-        r = _eval({"graph": g}, {"is_bipartite": True},
-                  {"evaluation_type": "bipartite", "bipartite": {"return_odd_cycle": True}})
+        r = _eval({"graph": g}, {"is_bipartite": True, "evaluation_type": "bipartite", "bipartite": {"return_odd_cycle": True}},
+                  {})
         assert r["is_correct"] is False
 
     def test_student_builds_bipartite_graph(self):
         student_g = _graph(["A", "B", "X", "Y"], [
             {"source": "A", "target": "X"}, {"source": "B", "target": "Y"}
         ])
-        r = _eval({"graph": student_g}, {"is_bipartite": True},
-                  {"evaluation_type": "bipartite"})
+        r = _eval({"graph": student_g}, {"is_bipartite": True, "evaluation_type": "bipartite"},
+                  {})
         assert r["is_correct"] is True
 
 
@@ -125,36 +125,36 @@ class TestCycleDetection:
         g = _graph(["A", "B", "C"], [
             {"source": "A", "target": "B"}, {"source": "B", "target": "C"}, {"source": "C", "target": "A"}
         ])
-        r = _eval({"graph": g}, {"has_cycle": True},
-                  {"evaluation_type": "cycle_detection"})
+        r = _eval({"graph": g}, {"has_cycle": True, "evaluation_type": "cycle_detection"},
+                  {})
         assert r["is_correct"] is True
 
     def test_no_cycle(self):
         g = _graph(["A", "B", "C"], [{"source": "A", "target": "B"}, {"source": "B", "target": "C"}])
-        r = _eval({"graph": g}, {"has_cycle": False},
-                  {"evaluation_type": "cycle_detection"})
+        r = _eval({"graph": g}, {"has_cycle": False, "evaluation_type": "cycle_detection"},
+                  {})
         assert r["is_correct"] is True
 
     def test_wrong_cycle_answer(self):
         g = _graph(["A", "B", "C"], [{"source": "A", "target": "B"}, {"source": "B", "target": "C"}])
-        r = _eval({"graph": g}, {"has_cycle": True},
-                  {"evaluation_type": "cycle_detection"})
+        r = _eval({"graph": g}, {"has_cycle": True, "evaluation_type": "cycle_detection"},
+                  {})
         assert r["is_correct"] is False
 
     def test_directed_cycle(self):
         g = _graph(["A", "B", "C"], [
             {"source": "A", "target": "B"}, {"source": "B", "target": "C"}, {"source": "C", "target": "A"}
         ])
-        r = _eval({"graph": g}, {"has_cycle": True},
-                  {"evaluation_type": "cycle_detection", "directed": True})
+        r = _eval({"graph": g}, {"has_cycle": True, "evaluation_type": "cycle_detection", "directed": True},
+                  {})
         assert r["is_correct"] is True
 
     def test_directed_dag(self):
         g = _graph(["A", "B", "C"], [
             {"source": "A", "target": "B"}, {"source": "A", "target": "C"}
         ])
-        r = _eval({"graph": g}, {"has_cycle": False},
-                  {"evaluation_type": "cycle_detection", "directed": True})
+        r = _eval({"graph": g}, {"has_cycle": False, "evaluation_type": "cycle_detection", "directed": True},
+                  {})
         assert r["is_correct"] is True
 
 
@@ -163,24 +163,24 @@ class TestCycleDetection:
 class TestGraphColoring:
     def test_2_colorable_correct(self):
         g = _graph(["A", "B"], [{"source": "A", "target": "B"}])
-        r = _eval({"graph": g}, {"is_colorable": True, "num_colors": 2},
-                  {"evaluation_type": "graph_coloring"})
+        r = _eval({"graph": g}, {"is_colorable": True, "num_colors": 2, "evaluation_type": "graph_coloring"},
+                  {})
         assert r["is_correct"] is True
 
     def test_2_colorable_wrong(self):
         g = _graph(["A", "B", "C"], [
             {"source": "A", "target": "B"}, {"source": "B", "target": "C"}, {"source": "C", "target": "A"}
         ])
-        r = _eval({"graph": g}, {"is_colorable": True, "num_colors": 2},
-                  {"evaluation_type": "graph_coloring"})
+        r = _eval({"graph": g}, {"is_colorable": True, "num_colors": 2, "evaluation_type": "graph_coloring"},
+                  {})
         assert r["is_correct"] is False
 
     def test_3_colorable(self):
         g = _graph(["A", "B", "C"], [
             {"source": "A", "target": "B"}, {"source": "B", "target": "C"}, {"source": "C", "target": "A"}
         ])
-        r = _eval({"graph": g}, {"is_colorable": True, "num_colors": 3},
-                  {"evaluation_type": "graph_coloring"})
+        r = _eval({"graph": g}, {"is_colorable": True, "num_colors": 3, "evaluation_type": "graph_coloring"},
+                  {})
         assert r["is_correct"] is True
 
     def test_valid_coloring_submitted(self):
@@ -189,8 +189,8 @@ class TestGraphColoring:
         ])
         r = _eval(
             {"graph": g, "coloring": {"A": 0, "B": 1, "C": 2}},
-            {"is_colorable": True, "num_colors": 3},
-            {"evaluation_type": "graph_coloring"},
+            {"is_colorable": True, "num_colors": 3, "evaluation_type": "graph_coloring"},
+            {},
         )
         assert r["is_correct"] is True
 
@@ -200,23 +200,23 @@ class TestGraphColoring:
         ])
         r = _eval(
             {"graph": g, "coloring": {"A": 0, "B": 0, "C": 1}},
-            {"is_colorable": True, "num_colors": 3},
-            {"evaluation_type": "graph_coloring"},
+            {"is_colorable": True, "num_colors": 3, "evaluation_type": "graph_coloring"},
+            {},
         )
         assert r["is_correct"] is False
 
     def test_num_colors_from_params(self):
         g = _graph(["A", "B"], [{"source": "A", "target": "B"}])
         r = _eval(
-            {"graph": g}, {"is_colorable": True},
-            {"evaluation_type": "graph_coloring", "graph_coloring": {"num_colors": 2}},
+            {"graph": g}, {"is_colorable": True, "evaluation_type": "graph_coloring", "graph_coloring": {"num_colors": 2}},
+            {},
         )
         assert r["is_correct"] is True
 
     def test_missing_num_colors(self):
         g = _graph(["A", "B"], [{"source": "A", "target": "B"}])
-        r = _eval({"graph": g}, {"is_colorable": True},
-                  {"evaluation_type": "graph_coloring"})
+        r = _eval({"graph": g}, {"is_colorable": True, "evaluation_type": "graph_coloring"},
+                  {})
         assert r["is_correct"] is False  # error due to missing num_colors
 
 
@@ -230,7 +230,7 @@ class TestIsomorphism:
         g2 = _graph(["X", "Y", "Z"], [
             {"source": "X", "target": "Y"}, {"source": "Y", "target": "Z"}, {"source": "Z", "target": "X"}
         ])
-        r = _eval({"graph": g2}, {"graph": g1}, {"evaluation_type": "isomorphism"})
+        r = _eval({"graph": g2}, {"graph": g1, "evaluation_type": "isomorphism"}, {})
         assert r["is_correct"] is True
 
     def test_not_isomorphic(self):
@@ -241,8 +241,8 @@ class TestIsomorphism:
         g_student = _graph(["X", "Y", "Z"], [
             {"source": "X", "target": "Y"}, {"source": "Y", "target": "Z"}
         ])
-        r = _eval({"graph": g_student}, {"graph": g_teacher},
-                  {"evaluation_type": "isomorphism"})
+        r = _eval({"graph": g_student}, {"graph": g_teacher, "evaluation_type": "isomorphism"},
+                  {})
         # Graphs are not isomorphic, so the student's graph doesn't match
         assert r["is_correct"] is False
 
@@ -253,16 +253,16 @@ class TestIsomorphism:
         g2 = _graph(["X", "Y", "Z"], [
             {"source": "X", "target": "Y"}, {"source": "Y", "target": "Z"}
         ])
-        r = _eval({"graph": g2, "is_isomorphic": False}, {"graph": g1, "is_isomorphic": False},
-                  {"evaluation_type": "isomorphism"})
+        r = _eval({"graph": g2, "is_isomorphic": False}, {"graph": g1, "is_isomorphic": False, "evaluation_type": "isomorphism"},
+                  {})
         assert r["is_correct"] is True
 
     def test_missing_teacher_graph(self):
-        r = _eval({"graph": _graph(["A"], [])}, {}, {"evaluation_type": "isomorphism"})
+        r = _eval({"graph": _graph(["A"], [])}, {"evaluation_type": "isomorphism"}, {})
         assert r["is_correct"] is False
 
     def test_missing_student_graph(self):
-        r = _eval({}, {"graph": _graph(["A"], [])}, {"evaluation_type": "isomorphism"})
+        r = _eval({}, {"graph": _graph(["A"], []), "evaluation_type": "isomorphism"}, {})
         assert r["is_correct"] is False
 
 
@@ -273,21 +273,21 @@ class TestPlanarity:
         nodes = ["A", "B", "C", "D"]
         edges = [{"source": a, "target": b} for i, a in enumerate(nodes) for b in nodes[i+1:]]
         g = _graph(nodes, edges)
-        r = _eval({"graph": g}, {"is_planar": True}, {"evaluation_type": "planarity"})
+        r = _eval({"graph": g}, {"is_planar": True, "evaluation_type": "planarity"}, {})
         assert r["is_correct"] is True
 
     def test_not_planar_k5(self):
         nodes = [str(i) for i in range(5)]
         edges = [{"source": a, "target": b} for i, a in enumerate(nodes) for b in nodes[i+1:]]
         g = _graph(nodes, edges)
-        r = _eval({"graph": g}, {"is_planar": False}, {"evaluation_type": "planarity"})
+        r = _eval({"graph": g}, {"is_planar": False, "evaluation_type": "planarity"}, {})
         assert r["is_correct"] is True
 
     def test_wrong_planarity(self):
         nodes = [str(i) for i in range(5)]
         edges = [{"source": a, "target": b} for i, a in enumerate(nodes) for b in nodes[i+1:]]
         g = _graph(nodes, edges)
-        r = _eval({"graph": g}, {"is_planar": True}, {"evaluation_type": "planarity"})
+        r = _eval({"graph": g}, {"is_planar": True, "evaluation_type": "planarity"}, {})
         assert r["is_correct"] is False
 
 
@@ -296,26 +296,26 @@ class TestPlanarity:
 class TestTree:
     def test_tree_correct(self):
         g = _graph(["A", "B", "C"], [{"source": "A", "target": "B"}, {"source": "B", "target": "C"}])
-        r = _eval({"graph": g}, {"is_tree": True}, {"evaluation_type": "tree"})
+        r = _eval({"graph": g}, {"is_tree": True, "evaluation_type": "tree"}, {})
         assert r["is_correct"] is True
 
     def test_not_tree_has_cycle(self):
         g = _graph(["A", "B", "C"], [
             {"source": "A", "target": "B"}, {"source": "B", "target": "C"}, {"source": "C", "target": "A"}
         ])
-        r = _eval({"graph": g}, {"is_tree": False}, {"evaluation_type": "tree"})
+        r = _eval({"graph": g}, {"is_tree": False, "evaluation_type": "tree"}, {})
         assert r["is_correct"] is True
 
     def test_not_tree_disconnected(self):
         g = _graph(["A", "B"], [])
-        r = _eval({"graph": g}, {"is_tree": False}, {"evaluation_type": "tree"})
+        r = _eval({"graph": g}, {"is_tree": False, "evaluation_type": "tree"}, {})
         assert r["is_correct"] is True
 
     def test_wrong_tree_answer(self):
         g = _graph(["A", "B", "C"], [
             {"source": "A", "target": "B"}, {"source": "B", "target": "C"}, {"source": "C", "target": "A"}
         ])
-        r = _eval({"graph": g}, {"is_tree": True}, {"evaluation_type": "tree"})
+        r = _eval({"graph": g}, {"is_tree": True, "evaluation_type": "tree"}, {})
         assert r["is_correct"] is False
 
 
@@ -324,14 +324,14 @@ class TestTree:
 class TestForest:
     def test_forest_correct(self):
         g = _graph(["A", "B", "C"], [{"source": "A", "target": "B"}])
-        r = _eval({"graph": g}, {"is_forest": True}, {"evaluation_type": "forest"})
+        r = _eval({"graph": g}, {"is_forest": True, "evaluation_type": "forest"}, {})
         assert r["is_correct"] is True
 
     def test_not_forest(self):
         g = _graph(["A", "B", "C"], [
             {"source": "A", "target": "B"}, {"source": "B", "target": "C"}, {"source": "C", "target": "A"}
         ])
-        r = _eval({"graph": g}, {"is_forest": True}, {"evaluation_type": "forest"})
+        r = _eval({"graph": g}, {"is_forest": True, "evaluation_type": "forest"}, {})
         assert r["is_correct"] is False
 
 
@@ -342,19 +342,19 @@ class TestDAG:
         g = _graph(["A", "B", "C"], [
             {"source": "A", "target": "B"}, {"source": "A", "target": "C"}
         ])
-        r = _eval({"graph": g}, {"is_dag": True}, {"evaluation_type": "dag", "directed": True})
+        r = _eval({"graph": g}, {"is_dag": True, "evaluation_type": "dag", "directed": True}, {})
         assert r["is_correct"] is True
 
     def test_not_dag_has_cycle(self):
         g = _graph(["A", "B"], [
             {"source": "A", "target": "B"}, {"source": "B", "target": "A"}
         ])
-        r = _eval({"graph": g}, {"is_dag": False}, {"evaluation_type": "dag", "directed": True})
+        r = _eval({"graph": g}, {"is_dag": False, "evaluation_type": "dag", "directed": True}, {})
         assert r["is_correct"] is True
 
     def test_undirected_never_dag(self):
         g = _graph(["A", "B"], [{"source": "A", "target": "B"}])
-        r = _eval({"graph": g}, {"is_dag": True}, {"evaluation_type": "dag"})
+        r = _eval({"graph": g}, {"is_dag": True, "evaluation_type": "dag"}, {})
         assert r["is_correct"] is False
 
 
@@ -365,21 +365,21 @@ class TestEulerian:
         g = _graph(["A", "B", "C"], [
             {"source": "A", "target": "B"}, {"source": "B", "target": "C"}, {"source": "C", "target": "A"}
         ])
-        r = _eval({"graph": g}, {"is_eulerian": True}, {"evaluation_type": "eulerian"})
+        r = _eval({"graph": g}, {"is_eulerian": True, "evaluation_type": "eulerian"}, {})
         assert r["is_correct"] is True
 
     def test_not_eulerian(self):
         g = _graph(["A", "B", "C", "D"], [
             {"source": "A", "target": "B"}, {"source": "B", "target": "C"}, {"source": "C", "target": "D"}
         ])
-        r = _eval({"graph": g}, {"is_eulerian": False}, {"evaluation_type": "eulerian"})
+        r = _eval({"graph": g}, {"is_eulerian": False, "evaluation_type": "eulerian"}, {})
         assert r["is_correct"] is True
 
     def test_wrong_eulerian(self):
         g = _graph(["A", "B", "C", "D"], [
             {"source": "A", "target": "B"}, {"source": "B", "target": "C"}, {"source": "C", "target": "D"}
         ])
-        r = _eval({"graph": g}, {"is_eulerian": True}, {"evaluation_type": "eulerian"})
+        r = _eval({"graph": g}, {"is_eulerian": True, "evaluation_type": "eulerian"}, {})
         assert r["is_correct"] is False
 
 
@@ -390,21 +390,21 @@ class TestSemiEulerian:
         g = _graph(["A", "B", "C"], [
             {"source": "A", "target": "B"}, {"source": "B", "target": "C"}
         ])
-        r = _eval({"graph": g}, {"is_semi_eulerian": True}, {"evaluation_type": "semi_eulerian"})
+        r = _eval({"graph": g}, {"is_semi_eulerian": True, "evaluation_type": "semi_eulerian"}, {})
         assert r["is_correct"] is True
 
     def test_eulerian_circuit_is_also_semi_eulerian(self):
         g = _graph(["A", "B", "C"], [
             {"source": "A", "target": "B"}, {"source": "B", "target": "C"}, {"source": "C", "target": "A"}
         ])
-        r = _eval({"graph": g}, {"is_semi_eulerian": True}, {"evaluation_type": "semi_eulerian"})
+        r = _eval({"graph": g}, {"is_semi_eulerian": True, "evaluation_type": "semi_eulerian"}, {})
         assert r["is_correct"] is True
 
     def test_not_semi_eulerian(self):
         nodes = ["A", "B", "C", "D"]
         edges = [{"source": a, "target": b} for i, a in enumerate(nodes) for b in nodes[i+1:]]
         g = _graph(nodes, edges)
-        r = _eval({"graph": g}, {"is_semi_eulerian": False}, {"evaluation_type": "semi_eulerian"})
+        r = _eval({"graph": g}, {"is_semi_eulerian": False, "evaluation_type": "semi_eulerian"}, {})
         assert r["is_correct"] is True
 
 
@@ -415,21 +415,21 @@ class TestRegular:
         g = _graph(["A", "B", "C"], [
             {"source": "A", "target": "B"}, {"source": "B", "target": "C"}, {"source": "C", "target": "A"}
         ])
-        r = _eval({"graph": g}, {"is_regular": True}, {"evaluation_type": "regular"})
+        r = _eval({"graph": g}, {"is_regular": True, "evaluation_type": "regular"}, {})
         assert r["is_correct"] is True
 
     def test_not_regular_star(self):
         g = _graph(["C", "L1", "L2"], [
             {"source": "C", "target": "L1"}, {"source": "C", "target": "L2"}
         ])
-        r = _eval({"graph": g}, {"is_regular": False}, {"evaluation_type": "regular"})
+        r = _eval({"graph": g}, {"is_regular": False, "evaluation_type": "regular"}, {})
         assert r["is_correct"] is True
 
     def test_wrong_regular(self):
         g = _graph(["C", "L1", "L2"], [
             {"source": "C", "target": "L1"}, {"source": "C", "target": "L2"}
         ])
-        r = _eval({"graph": g}, {"is_regular": True}, {"evaluation_type": "regular"})
+        r = _eval({"graph": g}, {"is_regular": True, "evaluation_type": "regular"}, {})
         assert r["is_correct"] is False
 
 
@@ -440,17 +440,17 @@ class TestComplete:
         g = _graph(["A", "B", "C"], [
             {"source": "A", "target": "B"}, {"source": "B", "target": "C"}, {"source": "C", "target": "A"}
         ])
-        r = _eval({"graph": g}, {"is_complete": True}, {"evaluation_type": "complete"})
+        r = _eval({"graph": g}, {"is_complete": True, "evaluation_type": "complete"}, {})
         assert r["is_correct"] is True
 
     def test_not_complete(self):
         g = _graph(["A", "B", "C"], [{"source": "A", "target": "B"}])
-        r = _eval({"graph": g}, {"is_complete": False}, {"evaluation_type": "complete"})
+        r = _eval({"graph": g}, {"is_complete": False, "evaluation_type": "complete"}, {})
         assert r["is_correct"] is True
 
     def test_wrong_complete(self):
         g = _graph(["A", "B", "C"], [{"source": "A", "target": "B"}])
-        r = _eval({"graph": g}, {"is_complete": True}, {"evaluation_type": "complete"})
+        r = _eval({"graph": g}, {"is_complete": True, "evaluation_type": "complete"}, {})
         assert r["is_correct"] is False
 
 
@@ -461,21 +461,21 @@ class TestDegreeSequence:
         g = _graph(["A", "B", "C"], [
             {"source": "A", "target": "B"}, {"source": "B", "target": "C"}, {"source": "C", "target": "A"}
         ])
-        r = _eval({"graph": g}, {"degree_sequence": [2, 2, 2]}, {"evaluation_type": "degree_sequence"})
+        r = _eval({"graph": g}, {"degree_sequence": [2, 2, 2], "evaluation_type": "degree_sequence"}, {})
         assert r["is_correct"] is True
 
     def test_correct_unsorted(self):
         g = _graph(["C", "L1", "L2", "L3"], [
             {"source": "C", "target": "L1"}, {"source": "C", "target": "L2"}, {"source": "C", "target": "L3"}
         ])
-        r = _eval({"graph": g}, {"degree_sequence": [3, 1, 1, 1]}, {"evaluation_type": "degree_sequence"})
+        r = _eval({"graph": g}, {"degree_sequence": [3, 1, 1, 1], "evaluation_type": "degree_sequence"}, {})
         assert r["is_correct"] is True
 
     def test_wrong_sequence(self):
         g = _graph(["A", "B", "C"], [
             {"source": "A", "target": "B"}, {"source": "B", "target": "C"}, {"source": "C", "target": "A"}
         ])
-        r = _eval({"graph": g}, {"degree_sequence": [3, 3, 3]}, {"evaluation_type": "degree_sequence"})
+        r = _eval({"graph": g}, {"degree_sequence": [3, 3, 3], "evaluation_type": "degree_sequence"}, {})
         assert r["is_correct"] is False
 
 
@@ -517,17 +517,17 @@ class TestDegreeSequence:
 class TestHamiltonianPath:
     def test_has_path(self):
         g = _graph(["A", "B", "C"], [{"source": "A", "target": "B"}, {"source": "B", "target": "C"}])
-        r = _eval({"graph": g}, {"has_hamiltonian_path": True}, {"evaluation_type": "hamiltonian_path"})
+        r = _eval({"graph": g}, {"has_hamiltonian_path": True, "evaluation_type": "hamiltonian_path"}, {})
         assert r["is_correct"] is True
 
     def test_no_path(self):
         g = _graph(["A", "B", "C"], [{"source": "A", "target": "B"}])
-        r = _eval({"graph": g}, {"has_hamiltonian_path": False}, {"evaluation_type": "hamiltonian_path"})
+        r = _eval({"graph": g}, {"has_hamiltonian_path": False, "evaluation_type": "hamiltonian_path"}, {})
         assert r["is_correct"] is True
 
     def test_wrong_answer(self):
         g = _graph(["A", "B", "C"], [{"source": "A", "target": "B"}])
-        r = _eval({"graph": g}, {"has_hamiltonian_path": True}, {"evaluation_type": "hamiltonian_path"})
+        r = _eval({"graph": g}, {"has_hamiltonian_path": True, "evaluation_type": "hamiltonian_path"}, {})
         assert r["is_correct"] is False
 
     def test_student_builds_complete_graph(self):
@@ -536,7 +536,7 @@ class TestHamiltonianPath:
             {"source": "A", "target": "D"}, {"source": "B", "target": "C"},
             {"source": "B", "target": "D"}, {"source": "C", "target": "D"},
         ])
-        r = _eval({"graph": g}, {"has_hamiltonian_path": True}, {"evaluation_type": "hamiltonian_path"})
+        r = _eval({"graph": g}, {"has_hamiltonian_path": True, "evaluation_type": "hamiltonian_path"}, {})
         assert r["is_correct"] is True
 
 
@@ -547,17 +547,17 @@ class TestHamiltonianCycle:
         g = _graph(["A", "B", "C"], [
             {"source": "A", "target": "B"}, {"source": "B", "target": "C"}, {"source": "C", "target": "A"}
         ])
-        r = _eval({"graph": g}, {"has_hamiltonian_cycle": True}, {"evaluation_type": "hamiltonian_cycle"})
+        r = _eval({"graph": g}, {"has_hamiltonian_cycle": True, "evaluation_type": "hamiltonian_cycle"}, {})
         assert r["is_correct"] is True
 
     def test_no_cycle(self):
         g = _graph(["A", "B", "C"], [{"source": "A", "target": "B"}, {"source": "B", "target": "C"}])
-        r = _eval({"graph": g}, {"has_hamiltonian_cycle": False}, {"evaluation_type": "hamiltonian_cycle"})
+        r = _eval({"graph": g}, {"has_hamiltonian_cycle": False, "evaluation_type": "hamiltonian_cycle"}, {})
         assert r["is_correct"] is True
 
     def test_wrong_answer(self):
         g = _graph(["A", "B", "C"], [{"source": "A", "target": "B"}, {"source": "B", "target": "C"}])
-        r = _eval({"graph": g}, {"has_hamiltonian_cycle": True}, {"evaluation_type": "hamiltonian_cycle"})
+        r = _eval({"graph": g}, {"has_hamiltonian_cycle": True, "evaluation_type": "hamiltonian_cycle"}, {})
         assert r["is_correct"] is False
 
 
@@ -568,19 +568,19 @@ class TestCliqueNumber:
         g = _graph(["A", "B", "C"], [
             {"source": "A", "target": "B"}, {"source": "B", "target": "C"}, {"source": "C", "target": "A"}
         ])
-        r = _eval({"graph": g}, {"clique_number": 3}, {"evaluation_type": "clique_number"})
+        r = _eval({"graph": g}, {"clique_number": 3, "evaluation_type": "clique_number"}, {})
         assert r["is_correct"] is True
 
     def test_wrong(self):
         g = _graph(["A", "B", "C"], [
             {"source": "A", "target": "B"}, {"source": "B", "target": "C"}, {"source": "C", "target": "A"}
         ])
-        r = _eval({"graph": g}, {"clique_number": 2}, {"evaluation_type": "clique_number"})
+        r = _eval({"graph": g}, {"clique_number": 2, "evaluation_type": "clique_number"}, {})
         assert r["is_correct"] is False
 
     def test_no_edges(self):
         g = _graph(["A", "B", "C"], [])
-        r = _eval({"graph": g}, {"clique_number": 1}, {"evaluation_type": "clique_number"})
+        r = _eval({"graph": g}, {"clique_number": 1, "evaluation_type": "clique_number"}, {})
         assert r["is_correct"] is True
 
 
@@ -589,5 +589,5 @@ class TestCliqueNumber:
 class TestUnsupportedType:
     def test_valid_type_works(self):
         g = _graph(["A", "B"], [{"source": "A", "target": "B"}])
-        r = _eval({"graph": g}, {"is_connected": True}, {"evaluation_type": "connectivity"})
+        r = _eval({"graph": g}, {"is_connected": True, "evaluation_type": "connectivity"}, {})
         assert r["is_correct"] is True
