@@ -648,8 +648,8 @@ def evaluation_function(
     elif 'evaluation_type' in answer_dict:
         eval_params_dict['evaluation_type'] = answer_dict['evaluation_type']
     else:
-        # return _err("evaluation_type is required in answer object")
-        eval_params_dict['evaluation_type'] = "isomorphism"  # default to isomorphism for backward compatibility with old tests that don't specify it
+        return _err("evaluation_type is required in answer object")
+        # eval_params_dict['evaluation_type'] = "isomorphism"  # default to isomorphism for backward compatibility with old tests that don't specify it
     
     # Get graph structure flags from answer (with defaults)
     eval_params_dict['directed'] = ans.directed if ans.directed is not None else False
