@@ -622,7 +622,7 @@ def evaluation_function(
     def _err(msg: str) -> Result:
         return Result(is_correct=False, feedback_items=[("error", msg)])
     
-    return _err(f"answer: {answer}, response: {response}, params: {params}")
+    # return _err(f"answer: {answer}, response: {response}, params: {params}")
 
     # ── parse answer FIRST — evaluation_type and graph flags now live here ─────
 
