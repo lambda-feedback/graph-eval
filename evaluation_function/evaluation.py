@@ -648,7 +648,8 @@ def evaluation_function(
     elif 'evaluation_type' in answer_dict:
         eval_params_dict['evaluation_type'] = answer_dict['evaluation_type']
     else:
-        return _err("evaluation_type is required in answer object")
+        # return _err("evaluation_type is required in answer object")
+        eval_params_dict['evaluation_type'] = None
     
     # Get graph structure flags from answer (with defaults)
     eval_params_dict['directed'] = ans.directed if ans.directed is not None else False
