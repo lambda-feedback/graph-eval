@@ -620,7 +620,7 @@ def evaluation_function(
         return Result(is_correct=True)
 
     def _err(msg: str) -> Result:
-        return Result(is_correct=False, feedback_items=[("error", msg)])
+        return Result(is_correct=False, feedback_items=[("error", msg + f"get answer: {answer}, response: {response}, params: {params}")])
     
     # return _err(f"answer: {answer}, response: {response}, params: {params}")
 
