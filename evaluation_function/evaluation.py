@@ -628,9 +628,15 @@ def evaluation_function(
 
     answer_dict = _to_dictish(answer) or {}
 
+    if 'evaluation_type' not in answer_dict:
+        return _err("evaluation_type is required in answer object")
+
     if is_frontend_format(answer_dict):
         parsed_graph = parse_frontend_graph(answer_dict)
-        answer_dict = {"graph": parsed_graph.model_dump()}
+        answer_dict = {
+            "graph": parsed_graph.model_dump(),
+            "evaluation_type": answer_dict.get("evaluation_type"),
+        }
 
     try:
         ans = Answer.model_validate(answer_dict)
